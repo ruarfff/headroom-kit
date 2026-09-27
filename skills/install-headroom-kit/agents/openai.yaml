@@ -1,0 +1,6 @@
+interface:
+  display_name: "Install headroom-kit"
+  short_description: "Install the headroom-kit CLI and check Headroom"
+  default_prompt: "Use $install-headroom-kit to install the headroom-kit CLI and check the Headroom version."
+policy:
+  allow_implicit_invocation: true

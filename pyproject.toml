@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling>=1.27", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headroom-kit"
+dynamic = ["version"]
+description = "Launch existing coding agents through a local Headroom proxy"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+authors = [{ name = "Ruairí O'Brien" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+]
+keywords = ["headroom", "codex", "copilot", "opencode", "proxy"]
+dependencies = ["headroom-ai[proxy,code]==0.37.0"]
+
+[project.urls]
+Homepage = "https://github.com/ruarfff/headroom-kit"
+Repository = "https://github.com/ruarfff/headroom-kit"
+Issues = "https://github.com/ruarfff/headroom-kit/issues"
+
+[project.scripts]
+headroom-kit = "headroom_kit.cli:main"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "ruff>=0.16.5,<0.17",
+]
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headroom_kit"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["install: install wheel and sdist into clean environments"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP"]
+extend-select = ["ANN", "BLE001", "C901", "PLR0915", "TID251"]
+ignore = ["E501", "B008", "B023"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/smoke_*.py" = ["E402"]
+"tests/compression_fixtures.py" = ["E402"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-statements = 40
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"mock.patch".msg = "Avoid patching state. Pass the dependency explicitly instead."
+"unittest.mock.patch".msg = "Avoid patching state. Pass the dependency explicitly instead."

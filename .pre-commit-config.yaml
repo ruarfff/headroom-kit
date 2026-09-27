@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/ruarfff/anti-slop-python
+    rev: f512a14e39df65644ae299b563c8dfb383cb8f6f # v0.2.0
+    hooks:
+      - id: anti-slop-python
