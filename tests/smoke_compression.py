@@ -290,7 +290,7 @@ def worker(policy: str) -> None:
     import tree_sitter_language_pack  # noqa: F401
     from headroom.transforms.kompress_compressor import is_kompress_available
 
-    assert importlib.metadata.version("headroom-ai") == "0.37.0"
+    assert importlib.metadata.version("headroom-ai") == "0.39.1"
     assert is_kompress_available(), "Kompress dependencies are missing"
     logging.disable(logging.CRITICAL)
     with upstream() as target:

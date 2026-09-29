@@ -27,7 +27,7 @@ headroom-kit run copilot -- --model <model-id>
 
 Use the same account in Copilot and Headroom. Routed requests use Headroom's OAuth credential. Copilot keeps its catalog and chooses the wire API. Kit removes inherited `COPILOT_PROVIDER_*` settings so BYOK does not replace that route. The CLI must honour `COPILOT_API_URL`. 1.0.87-0 was tested. Older builds can ignore it.
 
-`headroom-kit copilot-auth` runs Headroom's login in the installed environment. It applies Kit's TLS adapter first, so a custom CA is used and urllib is not offered HTTP/2. Check `SSL_CERT_FILE` before assuming saved credentials were rejected. Do not disable certificate verification. `headroom-kit copilot-auth status` reads the saved token and does not start a proxy. Do not install a separate `headroom` command for this.
+`headroom-kit copilot-auth` runs Headroom's login in the installed environment. Headroom uses the configured custom CA and HTTP/1.1 for urllib requests. Check `SSL_CERT_FILE` before assuming saved credentials were rejected. Do not disable certificate verification. `headroom-kit copilot-auth status` reads the saved token and does not start a proxy. Do not install a separate `headroom` command for this.
 
 ## Pi
 

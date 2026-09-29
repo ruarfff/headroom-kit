@@ -58,7 +58,7 @@ def _assert_cli(venv: Path, work: Path) -> None:
     version = _run([str(cli), "--version"], work, env)
     assert version.returncode == 0, version.stderr
     assert version.stdout.startswith("headroom-kit ")
-    assert "headroom-ai 0.37.0" in version.stdout
+    assert "headroom-ai 0.39.1" in version.stdout
     module = _run([str(python), "-I", "-m", "headroom_kit", "--help"], Path("/"), env)
     assert module.returncode == 0, module.stderr
     assert "headroom-kit" in module.stdout
@@ -117,7 +117,7 @@ def _lifecycle(venv: Path, work: Path) -> None:
     assert first.returncode == 0, first.stderr
     assert "Started Headroom" in first.stderr
     health = json.loads(first.stdout)
-    assert health["ready"] is True and health["version"] == "0.37.0"
+    assert health["ready"] is True and health["version"] == "0.39.1"
     again = subprocess.run(
         [cli, "run", "codex", "--", "exec", "stub"],
         cwd=Path("/"),

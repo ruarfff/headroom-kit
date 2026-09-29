@@ -130,7 +130,7 @@ def serve_proxy() -> int:
         fd = None
         args = sys.argv[1:]
     if args == ["--version"]:
-        print("headroom " + os.environ.get("HEADROOM_VERSION", "0.37.0"))
+        print("headroom " + os.environ.get("HEADROOM_VERSION", "0.39.1"))
         return 0
     record(
         "proxy-start",
@@ -206,7 +206,7 @@ def serve_proxy() -> int:
                 {
                     "status": "healthy",
                     "ready": MODE != "not-ready" and time.monotonic() >= ready_at,
-                    "version": os.environ.get("KIT_TEST_VERSION", "0.37.0"),
+                    "version": os.environ.get("KIT_TEST_VERSION", "0.39.1"),
                     "config": {"openai_api_url": upstream},
                 }
             ).encode()
@@ -256,7 +256,7 @@ def patch_versions() -> None:
 
     def version(name: str) -> str:
         if name == "headroom-ai":
-            return "0.37.0"
+            return "0.39.1"
         if name == "headroom-kit":
             return "0.0.0+test"
         return original(name)

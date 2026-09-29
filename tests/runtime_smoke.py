@@ -41,7 +41,7 @@ def smoke_api_clients(package: Path, env: dict[str, str], agent: Path, root: Pat
         )
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
-        assert payload["version"] == "0.37.0" and payload["ready"] is True
+        assert payload["version"] == "0.39.1" and payload["ready"] is True
         assert payload["upstream"] is None
         assert ("--extension" if name == "pi" else "--standalone") in payload["args"]
         with socket.socket() as listener:
@@ -114,7 +114,7 @@ def main() -> int:
             timeout=30,
             check=True,
         )
-        assert "headroom-kit " in result.stdout and "headroom-ai 0.37.0" in result.stdout, (
+        assert "headroom-kit " in result.stdout and "headroom-ai 0.39.1" in result.stdout, (
             result.stdout
         )
         print("Installed Kit and Headroom versions reported without a proxy: PASS")
@@ -136,7 +136,7 @@ def main() -> int:
         )
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
-        assert payload["version"] == "0.37.0" and payload["ready"] is True
+        assert payload["version"] == "0.39.1" and payload["ready"] is True
         assert payload["upstream"] is None
         assert payload["args"] == [
             "exec",

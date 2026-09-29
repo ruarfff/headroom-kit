@@ -1,4 +1,4 @@
-"""Real 0.37.0 metrics writers and graceful proxy restarts; no model requests."""
+"""Real 0.39.1 metrics writers and graceful proxy restarts; no model requests."""
 
 import asyncio
 import importlib.metadata
@@ -170,7 +170,7 @@ def check(root: Path) -> None:
 
 
 def main() -> None:
-    assert importlib.metadata.version("headroom-ai") == "0.37.0"
+    assert importlib.metadata.version("headroom-ai") == "0.39.1"
     if sys.argv[1:2] == ["--writer"]:
         writer(int(sys.argv[2]), int(sys.argv[3]))
         return

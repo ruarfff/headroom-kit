@@ -18,11 +18,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from headroom.proxy import ssl_context
-
-from headroom_kit.copilot import auth_failures, configure_urllib_tls
-
-ORIGINAL_URLOPEN_CONTEXT = ssl_context.build_urlopen_context
+from headroom_kit.copilot import auth_failures
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -125,8 +121,6 @@ class TLSRegression(unittest.TestCase):
                 with self.assertRaises(RemoteDisconnected):
                     urllib.request.urlopen(self.url, context=httpx_context, timeout=3)
                 self.assertEqual(Handler.protocols[-1], "h2")
-                configure_urllib_tls()
-                configure_urllib_tls()
                 context = self.ssl_context.build_urlopen_context()
                 self.assertEqual(
                     set(context.get_ca_certs(binary_form=True)),
@@ -153,7 +147,6 @@ class TLSRegression(unittest.TestCase):
                 "no_proxy": "localhost",
             }
         )
-        configure_urllib_tls()
         with self.assertRaises(urllib.error.HTTPError) as raised:
             self.request()
         raised.exception.close()
@@ -165,11 +158,7 @@ class TLSRegression(unittest.TestCase):
     def test_public_auth_dispatch_uses_http11_custom_ca_and_rejects_bad_certs(self) -> None:
         from headroom_kit.cli import dispatch
 
-        self.ssl_context.build_urlopen_context = ORIGINAL_URLOPEN_CONTEXT
         self.environment({"SSL_CERT_FILE": str(self.cert)})
-        with self.assertRaises(RemoteDisconnected):
-            self.request()
-        self.assertEqual(Handler.protocols[-1], "h2")
         self.assertEqual(self.auth_help(dispatch), 0)
         self.assert_custom_ca_http11()
         self.assert_certificate_rejected(dispatch)
@@ -199,7 +188,6 @@ class TLSRegression(unittest.TestCase):
 
     def assert_certificate_rejected(self, dispatch: Callable[[list[str]], int]) -> None:
         self.environment({})
-        self.ssl_context.build_urlopen_context = ORIGINAL_URLOPEN_CONTEXT
         self.assertEqual(self.auth_help(dispatch), 0)
         self.assertIsNone(self.ssl_context.build_urlopen_context())
         with self.assertRaises(urllib.error.URLError):
@@ -212,7 +200,6 @@ class TLSRegression(unittest.TestCase):
                 "GITHUB_COPILOT_TOKEN_EXCHANGE_URL": self.url,
             }
         )
-        configure_urllib_tls()
         candidate = self.adapter.CopilotTokenCandidate(
             token="gho_fake_test_only",
             source="test",

@@ -12,7 +12,7 @@ node --test tests/test_client_adapters.mjs
 uv run pre-commit run anti-slop-python --all-files
 ```
 
-`uv sync` installs Kit and `headroom-ai[proxy,code]==0.37.0` into `.venv`. The `code` extra supplies the tree-sitter parsers used for AST-aware compression. Launches use that interpreter. They do not call uv.
+`uv sync` installs Kit and `headroom-ai[proxy,code]==0.39.1` into `.venv`. The `code` extra supplies the tree-sitter parsers used for AST-aware compression. Launches use that interpreter. They do not call uv.
 
 Unit tests use stand-ins. They do not need provider credentials. The install test builds the wheel and sdist and installs them into clean environments. It is skipped unless you set `HEADROOM_KIT_INSTALL=1`. CI sets that.
 

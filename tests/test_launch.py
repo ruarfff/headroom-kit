@@ -476,7 +476,7 @@ class LauncherTests(unittest.TestCase):
             timeout=15,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "headroom-kit 0.0.0+test\nheadroom-ai 0.37.0\n")
+        self.assertEqual(result.stdout, "headroom-kit 0.0.0+test\nheadroom-ai 0.39.1\n")
         self.assertNotIn("latest", result.stdout)
         self.assertEqual(self.events(), [])
 
@@ -846,7 +846,7 @@ class LauncherTests(unittest.TestCase):
         self.addCleanup(foreign.wait)
         self.addCleanup(foreign.terminate)
         deadline = time.monotonic() + 3
-        while not kit_proxy.compatible(kit_proxy.health(port), "0.37.0", None):
+        while not kit_proxy.compatible(kit_proxy.health(port), "0.39.1", None):
             self.assertLess(time.monotonic(), deadline)
             time.sleep(0.05)
         self.assertEqual(self.run_launcher().returncode, 1)
@@ -1226,9 +1226,9 @@ class LauncherTests(unittest.TestCase):
 
     def test_copilot_identity_ignores_interpreter_noise(self) -> None:
         auth = kit_proxy.CopilotAuth("https://api.githubcopilot.com", "fake-refresh")
-        first = kit_proxy.identity("0.37.0", "copilot", {"OPENAI_API_KEY": "one"}, auth)
+        first = kit_proxy.identity("0.39.1", "copilot", {"OPENAI_API_KEY": "one"}, auth)
         second = kit_proxy.identity(
-            "0.37.0",
+            "0.39.1",
             "copilot",
             {
                 "OPENAI_API_KEY": "two",
@@ -1240,7 +1240,7 @@ class LauncherTests(unittest.TestCase):
         )
         self.assertEqual(first, second)
         other = kit_proxy.identity(
-            "0.37.0",
+            "0.39.1",
             "copilot",
             {"OPENAI_API_KEY": "one"},
             kit_proxy.CopilotAuth("https://api.githubcopilot.com", "fake-other"),
@@ -1423,7 +1423,7 @@ class LauncherTests(unittest.TestCase):
                 self.cfg,
                 "codex-app-headroom",
                 [],
-                "0.37.0",
+                "0.39.1",
                 desktop=self.desktop(),
                 start_proxy=proxy,
                 launch=launch,
@@ -1462,17 +1462,17 @@ class LauncherTests(unittest.TestCase):
         data = {
             "status": "healthy",
             "ready": True,
-            "version": "0.37.0",
+            "version": "0.39.1",
             "config": {"openai_api_url": None},
         }
-        self.assertTrue(kit_proxy.compatible(data, "0.37.0", None))
+        self.assertTrue(kit_proxy.compatible(data, "0.39.1", None))
         for bad in (
             {**data, "version": "0.38.0"},
             {**data, "ready": False},
             {**data, "config": {}},
             {**data, "config": {"openai_api_url": "https://api.githubcopilot.com"}},
         ):
-            self.assertFalse(kit_proxy.compatible(bad, "0.37.0", None))
+            self.assertFalse(kit_proxy.compatible(bad, "0.39.1", None))
 
 
 if __name__ == "__main__":

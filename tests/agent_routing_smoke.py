@@ -232,7 +232,7 @@ def check(
             "from headroom_kit.copilot import CopilotAuth\n"
             "cfg, command, args = json.loads(sys.argv[1])\n"
             "original = dict(os.environ)\n"
-            "session(cfg, command, args, '0.37.0', authorize=lambda: CopilotAuth('https://api.githubcopilot.com', 'fake-headroom-refresh'), start_proxy=lambda *args: 'http://127.0.0.1:' + str(args[3]))\n"
+            "session(cfg, command, args, '0.39.1', authorize=lambda: CopilotAuth('https://api.githubcopilot.com', 'fake-headroom-refresh'), start_proxy=lambda *args: 'http://127.0.0.1:' + str(args[3]))\n"
             "assert dict(os.environ) == original\n"
         )
         with (

@@ -1,8 +1,7 @@
-"""Adapt Headroom's TLS and subscription auth without changing its installed files."""
+"""Adapt Headroom's subscription auth without changing its installed files."""
 
 import contextlib
 import os
-import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -22,30 +21,15 @@ class CopilotAuth:
     refresh_oauth_token: str | None
 
 
-def configure_urllib_tls() -> None:
-    from headroom.proxy import ssl_context
-
-    def build_context() -> ssl.SSLContext | None:
-        # Headroom 0.37.0 shares httpx's ALPN list with urllib, which cannot speak h2.
-        context = ssl_context.build_httpx_verify()
-        if isinstance(context, ssl.SSLContext):
-            context.set_alpn_protocols(["http/1.1"])
-            return context
-        return None
-
-    ssl_context.build_urlopen_context = build_context
-
-
 def run_copilot_auth(args: list[str]) -> int:
     """Run Headroom's Copilot auth in this interpreter."""
-    configure_urllib_tls()
     try:
         from click import ClickException
         from headroom.cli.copilot_auth import copilot_auth
     except ImportError:
         raise KitError(
             "This Headroom release lacks the required Copilot subscription API. "
-            "Install headroom-ai 0.37.0 in this environment."
+            "Install headroom-ai 0.39.1 in this environment."
         ) from None
     try:
         code = copilot_auth.main(
@@ -90,12 +74,10 @@ def copilot_auth() -> CopilotAuth:
     # No upstream wrapper lifecycle: it can restart proxies or edit normal config.
     try:
         from headroom import copilot_auth as adapter
-
-        configure_urllib_tls()
     except ImportError:
         raise KitError(
             "This Headroom release lacks the required Copilot subscription API. "
-            "Install headroom-ai 0.37.0 in this environment."
+            "Install headroom-ai 0.39.1 in this environment."
         ) from None
     try:
         with (
@@ -142,7 +124,6 @@ def copilot_auth() -> CopilotAuth:
 def managed_copilot_auth() -> None:
     from headroom import copilot_auth as adapter
 
-    configure_urllib_tls()
     upstream_auth = adapter.apply_copilot_api_auth
 
     async def authenticate(headers: dict[str, str], *, url: str) -> dict[str, str]:

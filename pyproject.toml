@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Software Development",
 ]
 keywords = ["headroom", "codex", "copilot", "opencode", "proxy"]
-dependencies = ["headroom-ai[proxy,code]==0.37.0"]
+dependencies = ["headroom-ai[proxy,code]==0.39.1"]
 
 [project.urls]
 Homepage = "https://github.com/ruarfff/headroom-kit"
