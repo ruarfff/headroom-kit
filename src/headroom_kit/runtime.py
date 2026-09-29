@@ -139,7 +139,7 @@ def reject_legacy(raw: Mapping[str, Json], env: Mapping[str, str]) -> None:
     if found:
         raise KitError(
             f"Runtime selection is no longer supported ({', '.join(found)}). "
-            "Install headroom-kit with headroom-ai 0.39.1, then remove HEADROOM_VERSION, "
+            "Install headroom-kit with its pinned dependencies, then remove HEADROOM_VERSION, "
             "version, uv, and python from the environment and config file. "
             "Stop an old managed proxy with headroom-kit stop <port> before launching again."
         )
@@ -225,7 +225,7 @@ def installed_headroom_version() -> str:
     except importlib.metadata.PackageNotFoundError:
         raise KitError(
             "headroom-ai is not installed in this Python environment. "
-            "Install headroom-kit so this interpreter can import headroom-ai 0.39.1. "
+            "Install headroom-kit with its pinned dependencies. "
             "A separate headroom executable is not enough."
         ) from None
     if version != TESTED_HEADROOM:

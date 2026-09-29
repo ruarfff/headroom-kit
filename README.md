@@ -13,7 +13,7 @@ agent -> headroom-kit -> Headroom on 127.0.0.1 -> model provider
 
 ## Install
 
-You need Python 3.13 and the agent you want to launch. Kit and Headroom 0.39.1 install into the same environment:
+You need Python 3.13 and the agent you want to launch. Kit and its pinned Headroom dependency install into the same environment:
 
 ```sh
 uv tool install --python 3.13 headroom-kit

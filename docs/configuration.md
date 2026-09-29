@@ -32,13 +32,13 @@ Unset a variable to use the file or the built-in default. An empty value is an e
 
 ## Runtime versions
 
-This release requires `headroom-ai[proxy,code]==0.39.1`, installed with Kit. `headroom-kit --version` prints the Kit version and the installed Headroom version. It does not start a proxy, and `HEADROOM_VERSION` does not change the reported version.
+Kit requires the Headroom version pinned in `pyproject.toml`, installed with Kit. `headroom-kit --version` prints the Kit version and the installed Headroom version. It does not start a proxy, and `HEADROOM_VERSION` does not change the reported version.
 
 These are rejected, with a message that tells you what to remove:
 
 | Rejected setting | What to use instead |
 | --- | --- |
-| `HEADROOM_VERSION` | Install `headroom-ai` 0.39.1 with Kit. Do not select a version at launch. |
+| `HEADROOM_VERSION` | Install Kit with its pinned Headroom dependency. Do not select a version at launch. |
 | config `version` | Same. The dependency pin is the version. |
 | config `uv` | Not used. Kit does not download Python packages at launch. |
 | config `python` | Not used. Detached processes use the interpreter that installed Kit. |
@@ -73,7 +73,7 @@ Ports are 1–65535. Codex, Pi, and OpenCode each need their own port. Copilot C
 
 Managed proxies use Headroom's `coding` profile unless you override it. Explicit `HEADROOM_*` compression and metrics variables pass through. Routing, auth, privacy, process settings, semantic caching, and rate limiting stay under Kit's control.
 
-OpenAI routes stay lossless on Headroom 0.39.1 because CCR retrieval does not cover those paths, including OpenAI-wire Copilot. Setting a more aggressive profile does not bypass that.
+OpenAI routes stay lossless because CCR retrieval does not cover those paths, including OpenAI-wire Copilot. Setting a more aggressive profile does not bypass that.
 
 To change a setting that is part of the proxy identity, stop the proxy and launch again:
 

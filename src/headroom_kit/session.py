@@ -114,7 +114,7 @@ def configure_editor(data: Path, port: int) -> None:
     except ImportError:
         raise KitError(
             "This Headroom release lacks the editor writer. "
-            "Install headroom-ai 0.39.1 in this environment."
+            "Reinstall headroom-kit with its pinned dependencies."
         ) from None
     try:
         with contextlib.redirect_stdout(sys.stderr):
@@ -122,7 +122,7 @@ def configure_editor(data: Path, port: int) -> None:
     except (ClickException, OSError, RuntimeError, TypeError, ValueError):
         raise KitError(
             "Cannot configure isolated editor settings. Check JSONC/Headroom marker conflicts, "
-            "or reinstall headroom-ai 0.39.1 in this environment."
+            "or reinstall headroom-kit with its pinned dependencies."
         ) from None
 
 

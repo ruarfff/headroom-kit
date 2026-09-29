@@ -29,7 +29,7 @@ def run_copilot_auth(args: list[str]) -> int:
     except ImportError:
         raise KitError(
             "This Headroom release lacks the required Copilot subscription API. "
-            "Install headroom-ai 0.39.1 in this environment."
+            "Reinstall headroom-kit with its pinned dependencies."
         ) from None
     try:
         code = copilot_auth.main(
@@ -77,7 +77,7 @@ def copilot_auth() -> CopilotAuth:
     except ImportError:
         raise KitError(
             "This Headroom release lacks the required Copilot subscription API. "
-            "Install headroom-ai 0.39.1 in this environment."
+            "Reinstall headroom-kit with its pinned dependencies."
         ) from None
     try:
         with (

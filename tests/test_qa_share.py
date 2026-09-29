@@ -29,21 +29,21 @@ class QaShareTests(unittest.TestCase):
         self.assertTrue(qa_share.provider_quota("Rate limit reached"))
         self.assertTrue(qa_share.provider_quota("HTTP 429 too many requests"))
         self.assertTrue(qa_share.provider_quota("You've hit your usage limit"))
-        self.assertFalse(qa_share.provider_quota("Started Headroom 0.39.1 on port 1"))
+        self.assertFalse(qa_share.provider_quota("Started Headroom test-version on port 1"))
 
     def test_quota_after_share_is_not_a_kit_failure(self) -> None:
-        first = result(1, "Started Headroom 0.39.1 on port 1.\ninsufficient_quota\n")
-        second = result(1, "Reusing Headroom 0.39.1 on port 1.\nRate limit reached\n")
+        first = result(1, "Started Headroom test-version on port 1.\ninsufficient_quota\n")
+        second = result(1, "Reusing Headroom test-version on port 1.\nRate limit reached\n")
         self.assertIsNone(qa_share.share_error("pi", first, second))
         self.assertTrue(qa_share.client_ok(first))
 
     def test_missing_start_or_reuse_is_a_kit_failure(self) -> None:
         first = result(1, "agent crashed before proxy\n")
         self.assertIn("first launch failed", qa_share.share_error("codex", first))
-        started = result(0, "Started Headroom 0.39.1 on port 1.\n")
-        reused_badly = result(1, "Started Headroom 0.39.1 on port 2.\n")
+        started = result(0, "Started Headroom test-version on port 1.\n")
+        reused_badly = result(1, "Started Headroom test-version on port 2.\n")
         self.assertIn("did not reuse", qa_share.share_error("codex", started, reused_badly))
-        already = result(0, "Reusing Headroom 0.39.1 on port 1.\n")
+        already = result(0, "Reusing Headroom test-version on port 1.\n")
         self.assertIsNone(qa_share.share_error("pi-copilot", already))
         self.assertIsNone(qa_share.share_error("pi-copilot", already, already))
 
@@ -66,8 +66,8 @@ class QaShareTests(unittest.TestCase):
         self.assertFalse(qa_share.github_copilot_models("opencode/mimo-v2.5-free\n"))
 
     def test_non_quota_client_error_after_share_still_fails(self) -> None:
-        first = result(0, "Started Headroom 0.39.1 on port 1.\n")
-        second = result(1, "Reusing Headroom 0.39.1 on port 1.\nmodel not found\n")
+        first = result(0, "Started Headroom test-version on port 1.\n")
+        second = result(1, "Reusing Headroom test-version on port 1.\nmodel not found\n")
         self.assertIn(
             "client failed after proxy share", qa_share.share_error("copilot", first, second)
         )

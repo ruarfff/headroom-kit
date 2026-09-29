@@ -39,7 +39,7 @@ Install the standalone CLI and prove the tested Headroom release is importable. 
    headroom-kit --version
    ```
 
-   Require `headroom-ai 0.39.1`. If `HEADROOM_VERSION` is set, or a config file contains `version`, `uv`, or `python`, tell the user to remove that setting. Do not continue a launch while it remains.
+   Use Kit's pinned Headroom dependency. If `HEADROOM_VERSION` is set, or a config file contains `version`, `uv`, or `python`, tell the user to remove that setting. Do not continue a launch while it remains.
 
    Complete when both versions are printed and any rejected setting is reported.
 
