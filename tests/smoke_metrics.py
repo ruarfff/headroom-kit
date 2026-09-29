@@ -1,4 +1,4 @@
-"""Real 0.37.0 metrics writers and graceful proxy restarts; no model requests."""
+"""Real Headroom metrics writers and graceful proxy restarts; no model requests."""
 
 import asyncio
 import importlib.metadata
@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from headroom_kit.proxy import health
-from headroom_kit.runtime import Json, privacy, terminate
+from headroom_kit.runtime import TESTED_HEADROOM, Json, privacy, terminate
 
 REQUESTS = 23
 SAVED = 100
@@ -170,7 +170,7 @@ def check(root: Path) -> None:
 
 
 def main() -> None:
-    assert importlib.metadata.version("headroom-ai") == "0.37.0"
+    assert importlib.metadata.version("headroom-ai") == TESTED_HEADROOM
     if sys.argv[1:2] == ["--writer"]:
         writer(int(sys.argv[2]), int(sys.argv[3]))
         return

@@ -422,7 +422,7 @@ def cleanup_proxy(process: subprocess.Popen[bytes] | None, path: Path) -> None:
 
 
 def protect_unretrievable_routes(app: "FastAPI") -> None:
-    # Headroom 0.37.0 does not inject CCR tools into Responses, and direct
+    # Headroom does not inject CCR tools into Responses, and direct
     # Chat does not resolve them. Keep only the OpenAI pipeline lossless until
     # those paths pass the retrieval checks in smoke_compression.py.
     proxy = app.state.proxy

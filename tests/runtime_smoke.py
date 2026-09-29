@@ -9,6 +9,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from headroom_kit.runtime import TESTED_HEADROOM  # noqa: E402
+
 
 def stop_shared(package: Path, env: dict[str, str], port: int) -> None:
     result = subprocess.run(
@@ -41,7 +44,7 @@ def smoke_api_clients(package: Path, env: dict[str, str], agent: Path, root: Pat
         )
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
-        assert payload["version"] == "0.37.0" and payload["ready"] is True
+        assert payload["version"] == TESTED_HEADROOM and payload["ready"] is True
         assert payload["upstream"] is None
         assert ("--extension" if name == "pi" else "--standalone") in payload["args"]
         with socket.socket() as listener:
@@ -114,9 +117,9 @@ def main() -> int:
             timeout=30,
             check=True,
         )
-        assert "headroom-kit " in result.stdout and "headroom-ai 0.37.0" in result.stdout, (
-            result.stdout
-        )
+        assert (
+            "headroom-kit " in result.stdout and f"headroom-ai {TESTED_HEADROOM}" in result.stdout
+        ), result.stdout
         print("Installed Kit and Headroom versions reported without a proxy: PASS")
         result = subprocess.run(
             [
@@ -136,7 +139,7 @@ def main() -> int:
         )
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
-        assert payload["version"] == "0.37.0" and payload["ready"] is True
+        assert payload["version"] == TESTED_HEADROOM and payload["ready"] is True
         assert payload["upstream"] is None
         assert payload["args"] == [
             "exec",

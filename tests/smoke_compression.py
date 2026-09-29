@@ -30,7 +30,7 @@ from compression_fixtures import (
 )
 
 from headroom_kit.proxy import health, proxy_args, proxy_environment
-from headroom_kit.runtime import Json, privacy, terminate
+from headroom_kit.runtime import TESTED_HEADROOM, Json, privacy, terminate
 
 OLD_FLAGS = ["--mode", "cache", "--lossless", "--disable-kompress", "--disable-kompress-fallback"]
 ORIGINAL = "Seeded recovery fixture: exact content for the transport checks."
@@ -290,7 +290,7 @@ def worker(policy: str) -> None:
     import tree_sitter_language_pack  # noqa: F401
     from headroom.transforms.kompress_compressor import is_kompress_available
 
-    assert importlib.metadata.version("headroom-ai") == "0.37.0"
+    assert importlib.metadata.version("headroom-ai") == TESTED_HEADROOM
     assert is_kompress_available(), "Kompress dependencies are missing"
     logging.disable(logging.CRITICAL)
     with upstream() as target:

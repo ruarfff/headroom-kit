@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from headroom_kit.runtime import TESTED_HEADROOM
+
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(
     os.environ.get("HEADROOM_KIT_INSTALL") != "1",
@@ -58,7 +60,7 @@ def _assert_cli(venv: Path, work: Path) -> None:
     version = _run([str(cli), "--version"], work, env)
     assert version.returncode == 0, version.stderr
     assert version.stdout.startswith("headroom-kit ")
-    assert "headroom-ai 0.37.0" in version.stdout
+    assert f"headroom-ai {TESTED_HEADROOM}" in version.stdout
     module = _run([str(python), "-I", "-m", "headroom_kit", "--help"], Path("/"), env)
     assert module.returncode == 0, module.stderr
     assert "headroom-kit" in module.stdout
@@ -117,7 +119,7 @@ def _lifecycle(venv: Path, work: Path) -> None:
     assert first.returncode == 0, first.stderr
     assert "Started Headroom" in first.stderr
     health = json.loads(first.stdout)
-    assert health["ready"] is True and health["version"] == "0.37.0"
+    assert health["ready"] is True and health["version"] == TESTED_HEADROOM
     again = subprocess.run(
         [cli, "run", "codex", "--", "exec", "stub"],
         cwd=Path("/"),

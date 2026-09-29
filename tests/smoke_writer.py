@@ -1,4 +1,4 @@
-"""Run with the resolved Headroom 0.37.0 Python; no accounts or GUI processes."""
+"""Run with the resolved Headroom Python; no accounts or GUI processes."""
 
 import importlib.metadata
 import sys
@@ -9,11 +9,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from headroom_kit import session as kit
+from headroom_kit.runtime import TESTED_HEADROOM
 
 
 class PinnedWriterTests(unittest.TestCase):
     def test_real_writer_is_guarded_at_launch_and_immediately_before_write(self) -> None:
-        self.assertEqual(importlib.metadata.version("headroom-ai"), "0.37.0")
+        self.assertEqual(importlib.metadata.version("headroom-ai"), TESTED_HEADROOM)
         for layout in ("ordinary", "settings-link", "user-link", "late-settings-link"):
             with self.subTest(layout=layout), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary).resolve()
@@ -68,7 +69,7 @@ class PinnedWriterTests(unittest.TestCase):
                             cfg,
                             "copilot-vscode-headroom",
                             [],
-                            "0.37.0",
+                            TESTED_HEADROOM,
                             authorize=authorize,
                             start_proxy=proxy,
                             launch=launch,
@@ -84,7 +85,7 @@ class PinnedWriterTests(unittest.TestCase):
                             cfg,
                             "copilot-vscode-headroom",
                             [],
-                            "0.37.0",
+                            TESTED_HEADROOM,
                             authorize=authorize,
                             start_proxy=proxy,
                             launch=launch,

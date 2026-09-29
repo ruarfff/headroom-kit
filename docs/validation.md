@@ -22,4 +22,4 @@ Known limits:
 - Older Copilot CLIs can ignore `COPILOT_API_URL`.
 - Live routing and interactive model switching are not fully checked.
 
-OpenAI routes stay lossless on Headroom 0.37.0 because retrieval is incomplete on those paths.
+OpenAI routes stay lossless because retrieval is incomplete on those paths.

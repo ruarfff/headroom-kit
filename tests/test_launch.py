@@ -9,12 +9,14 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 import unittest
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from headroom_kit import proxy as kit_proxy
 from headroom_kit import session as kit
+from headroom_kit.runtime import TESTED_HEADROOM
 
 ROOT = Path(__file__).resolve().parents[1]
 STANDIN = Path(__file__).with_name("standin.py").read_text()
@@ -89,6 +91,7 @@ class LauncherTests(unittest.TestCase):
             "HOME": str(self.root),
             "KIT_TEST_ROOT": str(self.root),
             "KIT_TEST_SRC": str(ROOT / "src"),
+            "KIT_TEST_HEADROOM_VERSION": TESTED_HEADROOM,
             "XDG_CONFIG_HOME": str(self.root / "config"),
             "XDG_STATE_HOME": str(self.root / "state"),
             "VSCODE_IPC_HOOK_CLI": "fake-existing-editor",
@@ -453,7 +456,7 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(self.events(), [])
 
     def test_legacy_runtime_selection_is_rejected(self) -> None:
-        result = self.run_launcher(env={"HEADROOM_VERSION": "0.38.0"})
+        result = self.run_launcher(env={"HEADROOM_VERSION": "unsupported"})
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("HEADROOM_VERSION", result.stderr)
         self.assertIn("stop", result.stderr)
@@ -466,6 +469,12 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("version", result.stderr)
         self.assertEqual(self.events(), [])
 
+    def test_runtime_version_matches_dependency_pin(self) -> None:
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        self.assertIn(
+            f"headroom-ai[proxy,code]=={TESTED_HEADROOM}", project["project"]["dependencies"]
+        )
+
     def test_version_identifies_kit_and_headroom_without_a_proxy(self) -> None:
         result = subprocess.run(
             [str(self.interpreter), "-m", "headroom_kit", "--version"],
@@ -476,7 +485,7 @@ class LauncherTests(unittest.TestCase):
             timeout=15,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "headroom-kit 0.0.0+test\nheadroom-ai 0.37.0\n")
+        self.assertEqual(result.stdout, f"headroom-kit 0.0.0+test\nheadroom-ai {TESTED_HEADROOM}\n")
         self.assertNotIn("latest", result.stdout)
         self.assertEqual(self.events(), [])
 
@@ -646,7 +655,7 @@ class LauncherTests(unittest.TestCase):
         )
 
     def test_unexpected_proxy_version_fails_closed(self) -> None:
-        result = self.run_launcher(env={"KIT_TEST_VERSION": "0.38.0"})
+        result = self.run_launcher(env={"KIT_TEST_VERSION": "unsupported"})
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("not launched", result.stderr)
         self.assertNotIn("fake-private", result.stderr)
@@ -846,7 +855,7 @@ class LauncherTests(unittest.TestCase):
         self.addCleanup(foreign.wait)
         self.addCleanup(foreign.terminate)
         deadline = time.monotonic() + 3
-        while not kit_proxy.compatible(kit_proxy.health(port), "0.37.0", None):
+        while not kit_proxy.compatible(kit_proxy.health(port), TESTED_HEADROOM, None):
             self.assertLess(time.monotonic(), deadline)
             time.sleep(0.05)
         self.assertEqual(self.run_launcher().returncode, 1)
@@ -869,7 +878,7 @@ class LauncherTests(unittest.TestCase):
     def test_legacy_version_does_not_attach_or_stop_a_running_proxy(self) -> None:
         owner = self.start()
         self.wait_for("agent", owner)
-        for version in ("0.38.0", "latest"):
+        for version in ("unsupported", "latest"):
             result = self.run_launcher(env={"HEADROOM_VERSION": version})
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertIn("HEADROOM_VERSION", result.stderr)
@@ -1226,9 +1235,9 @@ class LauncherTests(unittest.TestCase):
 
     def test_copilot_identity_ignores_interpreter_noise(self) -> None:
         auth = kit_proxy.CopilotAuth("https://api.githubcopilot.com", "fake-refresh")
-        first = kit_proxy.identity("0.37.0", "copilot", {"OPENAI_API_KEY": "one"}, auth)
+        first = kit_proxy.identity(TESTED_HEADROOM, "copilot", {"OPENAI_API_KEY": "one"}, auth)
         second = kit_proxy.identity(
-            "0.37.0",
+            TESTED_HEADROOM,
             "copilot",
             {
                 "OPENAI_API_KEY": "two",
@@ -1240,7 +1249,7 @@ class LauncherTests(unittest.TestCase):
         )
         self.assertEqual(first, second)
         other = kit_proxy.identity(
-            "0.37.0",
+            TESTED_HEADROOM,
             "copilot",
             {"OPENAI_API_KEY": "one"},
             kit_proxy.CopilotAuth("https://api.githubcopilot.com", "fake-other"),
@@ -1423,7 +1432,7 @@ class LauncherTests(unittest.TestCase):
                 self.cfg,
                 "codex-app-headroom",
                 [],
-                "0.37.0",
+                TESTED_HEADROOM,
                 desktop=self.desktop(),
                 start_proxy=proxy,
                 launch=launch,
@@ -1462,17 +1471,17 @@ class LauncherTests(unittest.TestCase):
         data = {
             "status": "healthy",
             "ready": True,
-            "version": "0.37.0",
+            "version": TESTED_HEADROOM,
             "config": {"openai_api_url": None},
         }
-        self.assertTrue(kit_proxy.compatible(data, "0.37.0", None))
+        self.assertTrue(kit_proxy.compatible(data, TESTED_HEADROOM, None))
         for bad in (
-            {**data, "version": "0.38.0"},
+            {**data, "version": "unsupported"},
             {**data, "ready": False},
             {**data, "config": {}},
             {**data, "config": {"openai_api_url": "https://api.githubcopilot.com"}},
         ):
-            self.assertFalse(kit_proxy.compatible(bad, "0.37.0", None))
+            self.assertFalse(kit_proxy.compatible(bad, TESTED_HEADROOM, None))
 
 
 if __name__ == "__main__":
