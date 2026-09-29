@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local PR diagrams. Do not commit rendered SVGs.
+.pr-lens/

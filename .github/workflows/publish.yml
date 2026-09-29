@@ -1,0 +1,138 @@
+name: publish
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
+      - "NOTICE.md"
+
+concurrency:
+  group: publish-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/headroom-kit
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.3"
+          enable-cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify this commit is still main
+        id: main
+        run: |
+          git fetch origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+            echo "main has advanced; skipping release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine next release version
+        id: release_version
+        if: steps.main.outputs.skip != 'true'
+        run: |
+          python3 - << 'EOF' >> "$GITHUB_OUTPUT"
+          import re
+          import subprocess
+
+          def resolve_version():
+              subprocess.run(["git", "fetch", "--tags", "--force"], capture_output=True)
+
+              head_tags_proc = subprocess.run(
+                  ["git", "tag", "--points-at", "HEAD"],
+                  capture_output=True, text=True, check=True
+              )
+              for tag in head_tags_proc.stdout.splitlines():
+                  tag = tag.strip()
+                  if re.match(r"^v\d+\.\d+\.\d+$", tag):
+                      print(f"tag={tag}")
+                      print(f"version={tag.lstrip('v')}")
+                      print("is_new_tag=false")
+                      return
+
+              tags_proc = subprocess.run(
+                  ["git", "tag", "-l", "v[0-9]*.[0-9]*.[0-9]*", "--sort=-v:refname"],
+                  capture_output=True, text=True, check=True
+              )
+              tags = [t.strip() for t in tags_proc.stdout.splitlines() if t.strip()]
+
+              if not tags:
+                  next_tag = "v0.1.0"
+              else:
+                  latest = tags[0]
+                  match = re.match(r"^v(\d+)\.(\d+)\.(\d+)$", latest)
+                  if match:
+                      major, minor, patch = map(int, match.groups())
+                      next_tag = f"v{major}.{minor}.{patch + 1}"
+                  else:
+                      next_tag = "v0.1.0"
+
+              print(f"tag={next_tag}")
+              print(f"version={next_tag.lstrip('v')}")
+              print("is_new_tag=true")
+
+          resolve_version()
+          EOF
+
+      - name: Create and push git tag
+        if: steps.main.outputs.skip != 'true' && steps.release_version.outputs.is_new_tag == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.release_version.outputs.tag }}"
+          git push origin "${{ steps.release_version.outputs.tag }}"
+
+      - name: Build distribution packages
+        if: steps.main.outputs.skip != 'true'
+        run: uv build
+
+      - name: Create GitHub Release
+        if: steps.main.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.release_version.outputs.tag }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "GitHub release $tag already exists."
+          else
+            gh release create "$tag" dist/* \
+              --title "$tag" \
+              --generate-notes
+          fi
+
+      - name: Publish to PyPI
+        if: steps.main.outputs.skip != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
