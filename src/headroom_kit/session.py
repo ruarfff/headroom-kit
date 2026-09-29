@@ -298,7 +298,7 @@ def selected_provider(args: list[str]) -> str | None:
             continue
         if arg.startswith("--provider="):
             provider = arg.removeprefix("--provider=")
-        elif arg == "--model" and index + 1 < len(options):
+        elif arg in ("--model", "-m") and index + 1 < len(options):
             from_model = options[index + 1].split("/", 1)[0]
             index += 2
             continue
@@ -339,7 +339,6 @@ def session(
     launch: Agent = run_agent,
 ) -> int:
     agent = preflight(cfg, command, args, desktop)
-    os.umask(0o077)
     if command in ("pi-headroom", "opencode-headroom"):
         kind = command.removesuffix("-headroom")
         port = cfg[f"{kind}Port"]

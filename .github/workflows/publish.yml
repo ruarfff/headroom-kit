@@ -20,7 +20,11 @@ permissions:
   id-token: write
 
 jobs:
-  validate-and-publish:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  publish:
+    needs: checks
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -42,14 +46,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
-      - name: Run verification checks
-        run: |
-          uv sync --locked --dev
-          uv run ruff format --check .
-          uv run ruff check .
-          HEADROOM_KIT_INSTALL=1 uv run pytest
-          node --test tests/test_client_adapters.mjs
 
       - name: Verify this commit is still main
         id: main

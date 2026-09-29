@@ -203,6 +203,24 @@ class LauncherTests(unittest.TestCase):
         )
         self.assertFalse(any(e["event"] == "proxy-stop" for e in self.events()))
 
+    def test_agent_keeps_caller_umask_and_proxy_stays_private(self) -> None:
+        (self.bin / "codex").write_text(
+            f"#!{sys.executable}\nfrom pathlib import Path\nPath('agent-output').touch()\n"
+        )
+        result = subprocess.run(
+            self.invocation("codex-headroom", []),
+            env=self.env,
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            umask=0o022,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / "agent-output").stat().st_mode & 0o777, 0o644)
+        control = kit_proxy.runtime_dir() / f"{self.cfg['codexPort']}.sock"
+        self.assertEqual(control.stat().st_mode & 0o777, 0o700)
+
     def test_codex_config_overrides_share_the_subcommand_scope(self) -> None:
         args = [
             "-c",
@@ -304,16 +322,18 @@ class LauncherTests(unittest.TestCase):
         )
 
     def test_opencode_github_copilot_requires_headroom_login(self) -> None:
-        result = self.run_launcher(
-            "run",
-            "--model",
-            "github-copilot/gpt-4.1",
-            command="opencode-headroom",
-            mode="auth-failure",
-        )
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("headroom-kit copilot-auth login", result.stderr)
-        self.assertNotIn("`headroom copilot-auth", result.stderr)
+        for option in ("--model", "-m"):
+            with self.subTest(option=option):
+                result = self.run_launcher(
+                    "run",
+                    option,
+                    "github-copilot/gpt-4.1",
+                    command="opencode-headroom",
+                    mode="auth-failure",
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("headroom-kit copilot-auth login", result.stderr)
+                self.assertNotIn("`headroom copilot-auth", result.stderr)
         self.assertFalse(any(e["event"] == "proxy-start" for e in self.events()))
         agents = [e for e in self.events() if e["event"] == "agent"]
         self.assertTrue(agents)
@@ -871,6 +891,31 @@ class LauncherTests(unittest.TestCase):
                 self.assert_owner_signal_releases_port(sig)
                 self.stop_proxies()
                 (self.root / "events").unlink(missing_ok=True)
+
+    def test_detached_owner_signal_during_spawn_cleans_up(self) -> None:
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(signal=sig):
+                result = self.run_launcher(env={"KIT_TEST_OWNER_SIGNAL": str(sig)})
+                self.assertEqual(result.returncode, 1, result.stderr)
+                proxy_pid = int(
+                    next(
+                        event["pid"] for event in self.events() if event["event"] == "proxy-spawned"
+                    )
+                )
+                socket_path = kit_proxy.runtime_dir() / f"{self.cfg['codexPort']}.sock"
+                try:
+                    self.wait_until_released(proxy_pid, socket_path)
+                    self.assertTrue(kit_proxy.port_free(self.cfg["codexPort"]))
+                    self.assertFalse(any(event["event"] == "agent" for event in self.events()))
+                    again = self.run_launcher(mode="traffic")
+                    self.assertEqual(again.returncode, 0, again.stderr)
+                    self.assertIn("Started Headroom", again.stderr)
+                finally:
+                    if self.process_alive(proxy_pid):
+                        os.killpg(proxy_pid, signal.SIGKILL)
+                    self.stop_proxies()
+                    socket_path.unlink(missing_ok=True)
+                    (self.root / "events").unlink(missing_ok=True)
 
     def assert_owner_signal_releases_port(self, sig: int) -> None:
         result = self.run_launcher(mode="traffic")

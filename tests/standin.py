@@ -38,22 +38,6 @@ def record(event: str, **values: Json) -> None:
         file.write(json.dumps(dict(event=event, **values)) + "\n")
 
 
-def resolve_runtime() -> int:
-    record("resolve", args=sys.argv[1:])
-    if MODE == "download-failure":
-        print("fake-private-index-diagnostic", file=sys.stderr)
-        return 8
-    print(
-        json.dumps(
-            [
-                os.environ.get("KIT_TEST_VERSION", "0.37.0"),
-                str(ROOT / "runtime python"),
-            ]
-        )
-    )
-    return 0
-
-
 def run_agent(name: str) -> int:
     is_editor = name.startswith("code") and name != "codex"
     event = "editor" if is_editor else "agent"
@@ -340,6 +324,20 @@ def install_fakes(interpreter: str) -> None:
     install_editor_fake()
 
 
+def interrupt_owner_startup(frame: FrameType, event: str, arg: object) -> object:
+    if (
+        event == "return"
+        and frame.f_code.co_name == "__init__"
+        and frame.f_globals.get("__name__") == "subprocess"
+        and frame.f_back is not None
+        and frame.f_back.f_code.co_name == "owner_main"
+    ):
+        sys.settrace(None)
+        record("proxy-spawned", pid=frame.f_locals["self"].pid)
+        os.kill(os.getpid(), int(os.environ["KIT_TEST_OWNER_SIGNAL"]))
+    return interrupt_owner_startup
+
+
 def delegate_module() -> int:
     interpreter = str(Path(sys.argv[0]).resolve())
     src = os.environ.get("KIT_TEST_SRC")
@@ -351,6 +349,8 @@ def delegate_module() -> int:
     if module == "headroom_kit._serve" or not module.startswith("headroom_kit"):
         return serve_proxy()
     install_fakes(interpreter)
+    if module == "headroom_kit._owner" and "KIT_TEST_OWNER_SIGNAL" in os.environ:
+        sys.settrace(interrupt_owner_startup)
     runpy.run_module(module, run_name="__main__", alter_sys=True)
     return 0
 

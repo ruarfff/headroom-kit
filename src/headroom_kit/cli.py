@@ -100,7 +100,6 @@ def run(config: str | None, args: list[str]) -> int:
         return forward_agent(config, command, agent_args)
     cfg = load_config(config)
     validate(cfg)
-    preflight(cfg, command, agent_args)
     return session(cfg, command, agent_args, installed_headroom_version())
 
 

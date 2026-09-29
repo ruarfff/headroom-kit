@@ -304,6 +304,7 @@ def spawn_owner(
             cwd="/",
             start_new_session=True,
             pass_fds=(lock, listener.fileno()),
+            umask=0o077,
         )
         payload = dict(
             version=version,
@@ -330,26 +331,35 @@ def owner_main() -> int:
             raise KitError("Unsafe stale control socket.")
         path.unlink()
     with socket.socket(socket.AF_UNIX) as server:
-        server.bind(str(path))
-        server.listen()
-        server.settimeout(0.2)
-        process = subprocess.Popen(
-            [
-                sys.executable,
-                "-I",
-                "-m",
-                "headroom_kit._serve",
-                str(payload["listener"]),
-                *proxy_args(payload["kind"], port, payload["upstream"]),
-            ],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            pass_fds=(payload["listener"],),
-            start_new_session=True,
-        )
-        os.close(payload["listener"])
+        process = None
         try:
+            server.bind(str(path))
+            server.listen()
+            server.settimeout(0.2)
+            # Defer owner signals until the child can be cleaned up. This owner has no threads.
+            previous = signal.pthread_sigmask(
+                signal.SIG_BLOCK, (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+            )
+            try:
+                process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-I",
+                        "-m",
+                        "headroom_kit._serve",
+                        str(payload["listener"]),
+                        *proxy_args(payload["kind"], port, payload["upstream"]),
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    pass_fds=(payload["listener"],),
+                    start_new_session=True,
+                    preexec_fn=partial(signal.pthread_sigmask, signal.SIG_SETMASK, previous),
+                )
+            finally:
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+            os.close(payload["listener"])
             state = {key: payload[key] for key in ("port", "version", "kind", "identity")}
             state.update(instance=uuid.uuid4().hex, ready=False)
             serve_control(server, process, state, payload["upstream"], payload["timeout"])
@@ -398,12 +408,13 @@ def serve_control(
                 continue
 
 
-def cleanup_proxy(process: subprocess.Popen[bytes], path: Path) -> None:
+def cleanup_proxy(process: subprocess.Popen[bytes] | None, path: Path) -> None:
     previous = {
         s: signal.signal(s, signal.SIG_IGN) for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
     }
     try:
-        terminate(process, group=True)
+        if process is not None:
+            terminate(process, group=True)
         path.unlink(missing_ok=True)
     finally:
         for sig, handler in previous.items():

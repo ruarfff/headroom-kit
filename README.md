@@ -24,6 +24,7 @@ A normal virtual environment works too:
 ```sh
 uv venv --python 3.13
 uv pip install headroom-kit
+. .venv/bin/activate
 ```
 
 Do not point Kit at a separate `headroom` executable. It imports Headroom's Python modules. Copilot login is `headroom-kit copilot-auth login` in that same install. Headroom may still download its own model files on first proxy startup. That is separate from installing this package.

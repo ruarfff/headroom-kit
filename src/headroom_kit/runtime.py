@@ -132,26 +132,17 @@ def read_config(path: str | None) -> dict[str, Json]:
     return raw
 
 
-def legacy_names(raw: Mapping[str, Json], env: Mapping[str, str]) -> list[str]:
+def reject_legacy(raw: Mapping[str, Json], env: Mapping[str, str]) -> None:
     found = [key for key in LEGACY_KEYS if key in raw]
     if "HEADROOM_VERSION" in env:
         found.append("HEADROOM_VERSION")
-    return found
-
-
-def migration_message(found: Sequence[str]) -> str:
-    return (
-        f"Runtime selection is no longer supported ({', '.join(found)}). "
-        "Install headroom-kit with headroom-ai 0.37.0, then remove HEADROOM_VERSION, "
-        "version, uv, and python from the environment and config file. "
-        "Stop an old managed proxy with headroom-kit stop <port> before launching again."
-    )
-
-
-def reject_legacy(raw: Mapping[str, Json], env: Mapping[str, str]) -> None:
-    found = legacy_names(raw, env)
     if found:
-        raise KitError(migration_message(found))
+        raise KitError(
+            f"Runtime selection is no longer supported ({', '.join(found)}). "
+            "Install headroom-kit with headroom-ai 0.37.0, then remove HEADROOM_VERSION, "
+            "version, uv, and python from the environment and config file. "
+            "Stop an old managed proxy with headroom-kit stop <port> before launching again."
+        )
 
 
 def reject_unknown(raw: Mapping[str, Json]) -> None:

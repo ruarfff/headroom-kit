@@ -19,11 +19,14 @@ Install the standalone CLI and prove the tested Headroom release is importable. 
    uv tool install --python 3.13 headroom-kit
    ```
 
+   To upgrade an existing tool install, run `uv tool upgrade headroom-kit`.
+
    Use the project's virtual environment instead when the user wants Kit local to that project:
 
    ```sh
    uv venv --python 3.13
    uv pip install headroom-kit
+   . .venv/bin/activate
    ```
 
    If `uv` is missing, say so and stop. Do not install agents, Nix, or a second `headroom` command. Kit must import `headroom-ai` from the same environment. A separate `headroom` executable is not enough. Copilot login is `headroom-kit copilot-auth login` from that install.
