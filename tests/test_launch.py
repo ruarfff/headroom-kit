@@ -69,6 +69,7 @@ class LauncherTests(unittest.TestCase):
         codex_port, copilot_port, pi_port, opencode_port, vscode_port = unique_ports(5)
         self.cfg = {
             "startupTimeout": 2,
+            "openDashboard": True,
             "codexExecutable": "codex",
             "codexPort": codex_port,
             "codexAppPath": None,
@@ -1430,7 +1431,7 @@ class LauncherTests(unittest.TestCase):
 
         self.assertEqual(
             kit.session(
-                self.cfg,
+                dict(self.cfg, openDashboard=False),
                 "codex-app-headroom",
                 [],
                 TESTED_HEADROOM,

@@ -76,6 +76,8 @@ headroom-kit stop 8787
 
 Arguments after `--` are forwarded unchanged. `headroom-kit run codex -- --help` shows Codex help and does not start a proxy. `status` and `stop` do not need provider credentials or model downloads.
 
+Agent launches open the Headroom dashboard in your default browser on macOS and Linux desktops. Set `HEADROOM_OPEN_DASHBOARD=0` to disable this. SSH sessions and Linux sessions without a display skip it.
+
 Shared proxies stay up after the client exits. Stopping one interrupts every client on that port. Kit will not adopt or stop an unrelated listener. An incompatible managed proxy must be stopped explicitly before a new one can use the port.
 
 ## Configure
