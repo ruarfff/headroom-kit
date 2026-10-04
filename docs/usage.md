@@ -29,6 +29,22 @@ Use the same account in Copilot and Headroom. Routed requests use Headroom's OAu
 
 `headroom-kit copilot-auth` runs Headroom's login in the installed environment. Headroom uses the configured custom CA and HTTP/1.1 for urllib requests. Check `SSL_CERT_FILE` before assuming saved credentials were rejected. Do not disable certificate verification. `headroom-kit copilot-auth status` reads the saved token and does not start a proxy. Do not install a separate `headroom` command for this.
 
+## Copilot macOS app
+
+Authorize Headroom with `headroom-kit copilot-auth login`, then quit GitHub Copilot and run:
+
+```sh
+headroom-kit run copilot-app --
+```
+
+Kit opens a separate app profile, adds a **Headroom Copilot** provider from the live model catalog, and selects a routed model. Sign in to GitHub once in this profile. Normal app launches keep their own sign-in, sessions, settings, and model selection.
+
+The default profile is `~/.local/share/headroom-kit/copilot-app`, or `$XDG_DATA_HOME/headroom-kit/copilot-app` when set. Set `HEADROOM_COPILOT_APP_DATA_DIR` to choose another empty directory. `HEADROOM_COPILOT_APP_PATH` selects the installed app bundle. Quit either app profile before you switch launches.
+
+Each launch updates the managed provider and preserves your selected Headroom model when it is still available. GPT models that require Responses use that API; models with Chat Completions support use that API. Native Copilot model entries still bypass Headroom, so use the **Headroom Copilot** provider for routed chats. A removed model selection falls back to an available routed model.
+
+This integration uses the app's private provider database while the app is closed. Copilot app 1.1.26 with database schema 156 is supported. An unknown schema stops the launch before model settings change. Kit does not copy credentials from the normal profile.
+
 ## Pi
 
 ```sh

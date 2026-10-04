@@ -62,7 +62,7 @@ headroom-kit status
 headroom-kit stop <port>
 ```
 
-Agents: `codex`, `codex-app`, `copilot`, `copilot-vscode`, `pi`, `opencode`.
+Agents: `codex`, `codex-app`, `copilot`, `copilot-app`, `copilot-vscode`, `pi`, `opencode`.
 
 ```sh
 headroom-kit copilot-auth login
@@ -92,6 +92,7 @@ Install and sign in to the agent yourself. Kit does not install it.
 | --- | --- |
 | `codex` | Existing Codex sign-in. Built-in OpenAI provider only. |
 | `copilot` | `headroom-kit copilot-auth login`, then a Copilot CLI that honours `COPILOT_API_URL`. |
+| `copilot-app` | macOS only. Quit GitHub Copilot before launch. Uses a separate profile with Headroom models. |
 | `pi` | Pi installed. Copilot routing uses `headroom-kit copilot-auth login`. |
 | `opencode` | OpenCode v2. |
 | `copilot-vscode` | `code` or `code-insiders`. Uses an isolated profile, not your normal editor data. |

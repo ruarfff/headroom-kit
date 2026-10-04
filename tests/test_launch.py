@@ -24,6 +24,7 @@ AGENTS = {
     "codex-headroom": "codex",
     "codex-app-headroom": "codex-app",
     "copilot-headroom": "copilot",
+    "copilot-app-headroom": "copilot-app",
     "copilot-vscode-headroom": "copilot-vscode",
     "pi-headroom": "pi",
     "opencode-headroom": "opencode",
@@ -423,7 +424,7 @@ class LauncherTests(unittest.TestCase):
                     *args, command=command, env={"HEADROOM_VERSION": "invalid"}
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-        for command in ("codex-app-headroom", "copilot-vscode-headroom"):
+        for command in ("codex-app-headroom", "copilot-app-headroom", "copilot-vscode-headroom"):
             self.assertEqual(self.run_launcher("--help", command=command).returncode, 0)
         self.assertTrue(all(e["event"] == "agent" for e in self.events()))
         self.assertFalse((self.root / "state").exists())

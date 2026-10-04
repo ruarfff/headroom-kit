@@ -10,6 +10,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from headroom_kit import copilot_app
 from headroom_kit.copilot import CopilotAuth, copilot_auth
 from headroom_kit.proxy import ensure_proxy, locked
 from headroom_kit.runtime import (
@@ -148,9 +149,20 @@ def check_codex_options(args: list[str]) -> None:
             )
 
 
+def preflight_app(
+    cfg: Config, command: str, args: list[str], desktop: Desktop
+) -> list[str] | copilot_app.App:
+    if args:
+        name = command.removesuffix("-headroom")
+        raise KitError(f"Use headroom-kit run {name} without arguments, or --help.")
+    if command == "copilot-app-headroom":
+        return copilot_app.preflight(cfg, desktop.platform, desktop.lookup)
+    return app_target(cfg, desktop)
+
+
 def preflight(
     cfg: Config, command: str, args: list[str], desktop: Desktop = Desktop()
-) -> str | list[str] | None:
+) -> str | list[str] | copilot_app.App | None:
     if command == "codex-headroom":
         check_codex_options(args)
         agent = executable(cfg["codexExecutable"], "HEADROOM_CODEX_EXECUTABLE")
@@ -167,10 +179,8 @@ def preflight(
             "2."
         ):
             raise KitError("opencode requires OpenCode v2 (tested with 2.0.3).")
-    elif command == "codex-app-headroom":
-        if args:
-            raise KitError("Use headroom-kit run codex-app without arguments, or --help.")
-        agent = app_target(cfg, desktop)
+    elif command in ("codex-app-headroom", "copilot-app-headroom"):
+        agent = preflight_app(cfg, command, args, desktop)
     elif command == "copilot-vscode-headroom":
         if len(args) > 1 or (args and args[0].startswith("-")):
             raise KitError(
@@ -374,9 +384,22 @@ def session(
             ],
             None,
         )
-    port = cfg["copilotPort"] if command == "copilot-headroom" else cfg["vscodePort"]
+    port = (
+        cfg["copilotPort"]
+        if command in ("copilot-headroom", "copilot-app-headroom")
+        else cfg["vscodePort"]
+    )
     auth = authorize()
     endpoint = start_proxy(cfg, version, "copilot", port, auth)
+    if command == "copilot-app-headroom":
+        return copilot_app.launch(
+            agent,
+            endpoint,
+            cfg["startupTimeout"],
+            desktop.open,
+            launch,
+            client_environment(os.environ),
+        )
     if command == "copilot-headroom":
         env = client_environment(os.environ)
         # Keep Copilot's catalog, auto selection, and per-model wire routing.
