@@ -57,6 +57,8 @@ Headroom may download model files, such as Kompress weights, the first time a pr
 | `HEADROOM_CODEX_APP_PATH` | macOS bundle `com.openai.codex` | `codexAppPath` |
 | `HEADROOM_COPILOT_EXECUTABLE` | `copilot` | `copilotExecutable` |
 | `HEADROOM_COPILOT_PORT` | 8787 | `copilotPort` |
+| `HEADROOM_COPILOT_APP_PATH` | `/Applications/GitHub Copilot.app` | `copilotAppPath` |
+| `HEADROOM_COPILOT_APP_DATA_DIR` | `$XDG_DATA_HOME/headroom-kit/copilot-app`, or `~/.local/share/headroom-kit/copilot-app` | `copilotAppDataDir` |
 | `HEADROOM_PI_EXECUTABLE` | `pi` | `piExecutable` |
 | `HEADROOM_PI_PORT` | 8790 | `piPort` |
 | `HEADROOM_OPENCODE_EXECUTABLE` | `opencode` | `opencodeExecutable` |
@@ -67,7 +69,9 @@ Headroom may download model files, such as Kompress weights, the first time a pr
 | `HEADROOM_VSCODE_USER_DATA_DIR` | dedicated profile | `vscodeUserDataDir` |
 | `HEADROOM_VSCODE_EXTENSIONS_DIR` | channel extensions | `vscodeExtensionsDir` |
 
-Ports are 1–65535. Codex, Pi, and OpenCode each need their own port. Copilot CLI and the editor can share a port when they use the same Headroom OAuth credential. Executables are names on `PATH` or a single path, not a shell command.
+Ports are 1–65535. Codex, Pi, and OpenCode each need their own port. Copilot CLI, the Copilot app, and the editor can share a port when they use the same Headroom OAuth credential. Executables are names on `PATH` or a single path, not a shell command.
+
+The Copilot app data directory must be empty or already managed by Kit. It must be separate from `~/.copilot` and any inherited `COPILOT_HOME`, including their ancestors and children. Kit rejects links that escape the private profile. Do not copy your normal app database into this directory; sign in once in the new profile instead.
 
 ## Compression and storage
 

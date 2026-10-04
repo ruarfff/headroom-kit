@@ -26,12 +26,13 @@ AGENTS = {
     "codex": "codex-headroom",
     "codex-app": "codex-app-headroom",
     "copilot": "copilot-headroom",
+    "copilot-app": "copilot-app-headroom",
     "copilot-vscode": "copilot-vscode-headroom",
     "pi": "pi-headroom",
     "opencode": "opencode-headroom",
 }
 CLI_AGENTS = ("codex-headroom", "copilot-headroom", "pi-headroom", "opencode-headroom")
-GUI_AGENTS = ("codex-app-headroom", "copilot-vscode-headroom")
+GUI_AGENTS = ("codex-app-headroom", "copilot-app-headroom", "copilot-vscode-headroom")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -160,7 +161,7 @@ def print_help() -> None:
   headroom-kit --help
   headroom-kit --version
 
-Agents: codex, codex-app, copilot, copilot-vscode, pi, opencode.
+Agents: codex, codex-app, copilot, copilot-app, copilot-vscode, pi, opencode.
 
 --config is a JSON object of non-secret integration defaults. HEADROOM_*
 environment variables override the file, which overrides built-in defaults.
@@ -181,10 +182,11 @@ def print_run_help() -> None:
 def print_gui_help(command: str) -> None:
     if command == "copilot-vscode-headroom":
         print("Usage: headroom-kit run copilot-vscode -- [path]")
+    elif command == "copilot-app-headroom":
+        print("Usage: headroom-kit run copilot-app --")
+        print("Quit GitHub Copilot first. Uses a separate profile with Headroom models selected.")
+        print("Sign in once in that profile. HEADROOM_COPILOT_APP_DATA_DIR sets its location.")
     else:
         print("Usage: headroom-kit run codex-app --")
     print("Launch with a shared local Headroom proxy. Use headroom-kit status/stop to manage it.")
-    print(
-        "Normal Codex and VS Code launches keep their existing settings. "
-        "Configure through HEADROOM_*."
-    )
+    print("Normal app launches keep their existing settings. Configure through HEADROOM_*.")

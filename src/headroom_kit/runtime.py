@@ -22,6 +22,8 @@ ENV_OPTIONS = {
     "codexAppPath": "HEADROOM_CODEX_APP_PATH",
     "copilotExecutable": "HEADROOM_COPILOT_EXECUTABLE",
     "copilotPort": "HEADROOM_COPILOT_PORT",
+    "copilotAppPath": "HEADROOM_COPILOT_APP_PATH",
+    "copilotAppDataDir": "HEADROOM_COPILOT_APP_DATA_DIR",
     "piExecutable": "HEADROOM_PI_EXECUTABLE",
     "piPort": "HEADROOM_PI_PORT",
     "opencodeExecutable": "HEADROOM_OPENCODE_EXECUTABLE",
@@ -41,6 +43,8 @@ class Config(TypedDict):
     codexAppPath: str | None
     copilotExecutable: str
     copilotPort: int
+    copilotAppPath: str | None
+    copilotAppDataDir: str | None
     piExecutable: str
     piPort: int
     opencodeExecutable: str
@@ -61,6 +65,8 @@ DEFAULTS: Config = {
     "codexAppPath": None,
     "copilotExecutable": "copilot",
     "copilotPort": 8787,
+    "copilotAppPath": None,
+    "copilotAppDataDir": None,
     "piExecutable": "pi",
     "piPort": 8790,
     "opencodeExecutable": "opencode",

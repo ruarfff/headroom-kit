@@ -6,13 +6,15 @@ These checks describe what this package covers. They do not add providers or cla
 
 Linux and macOS CLI lifecycle checks run in GitHub Actions on `ubuntu-latest` and `macos-14`. Those checks use stand-ins for the agents and, when `HEADROOM_KIT_INSTALL=1`, install the wheel and sdist and start a real Headroom proxy from an unrelated directory.
 
-GUI checks are not part of that matrix. `codex-app` is macOS-only. VS Code isolation is covered by unit tests with a stand-in editor, not by launching a real GUI in CI.
+Live GUI checks are not part of that matrix. `codex-app` and `copilot-app` are macOS-only. Copilot app tests use a stand-in app, a local model catalog, and SQLite fixtures to check profile isolation, provider updates, schema rejection, and interrupted setup. VS Code isolation is covered by unit tests with a stand-in editor.
+
+Manual checks with Copilot app 1.1.26 verified GPT Responses and Claude Chat Completions through Headroom, preserved the normal profile's files during isolated launches, and confirmed that a normal app launch still sends requests directly to Copilot.
 
 ## Not verified
 
 - Windows. It is not a target of this package.
 - Live Linux agent sessions. The CLI lifecycle checks run there; the real Codex, Copilot, Pi, and OpenCode sessions were exercised on macOS.
-- GUI chat, remote editor hosts, and Copilot enterprise domains.
+- Other GUI chat paths, remote editor hosts, and Copilot enterprise domains.
 - Every model and interactive model switch.
 - Compression quality under load.
 
