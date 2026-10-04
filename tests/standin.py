@@ -87,6 +87,13 @@ def run_agent(name: str) -> int:
     return 37 if MODE == "agent-failure" else 0
 
 
+def run_browser() -> int:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(sys.argv[1], timeout=2) as response:
+        record("browser", url=sys.argv[1], ready=json.load(response)["ready"])
+    return 4 if MODE == "browser-failure" else 0
+
+
 def client_traffic(name: str) -> None:
     endpoint = os.environ.get("COPILOT_API_URL") or os.environ.get("HEADROOM_KIT_ENDPOINT")
     if name == "codex":
@@ -358,6 +365,8 @@ def delegate_module() -> int:
 
 def main() -> int:
     name = Path(sys.argv[0]).name
+    if name in ("open", "xdg-open"):
+        return run_browser()
     if name in ("codex", "copilot", "pi", "opencode", "agent with spaces", "code", "code-insiders"):
         return run_agent(name)
     if "-m" in sys.argv:

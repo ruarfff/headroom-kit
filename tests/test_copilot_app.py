@@ -94,7 +94,10 @@ class CopilotAppTests(unittest.TestCase):
         )
         binary.chmod(0o755)
         self.cfg: Config = dict(
-            DEFAULTS, copilotAppPath=str(self.bundle), copilotAppDataDir=str(self.data)
+            DEFAULTS,
+            openDashboard=False,
+            copilotAppPath=str(self.bundle),
+            copilotAppDataDir=str(self.data),
         )
         self.calls: list[str] = []
         self.launched: list[tuple[list[str], dict[str, str]]] = []

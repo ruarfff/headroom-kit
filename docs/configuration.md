@@ -8,11 +8,12 @@ A normal install needs no config file. The built-in defaults are below.
 2. `--config PATH`
 3. Built-in defaults
 
-The file is a JSON object. It holds non-secret integration defaults only: executable names, ports, and editor paths. Do not put tokens, passwords, or provider keys in it.
+The file is a JSON object. It holds non-secret integration defaults only: executable names, ports, browser behaviour, and editor paths. Do not put tokens, passwords, or provider keys in it.
 
 ```json
 {
   "startupTimeout": 180,
+  "openDashboard": true,
   "codexExecutable": "codex",
   "codexPort": 8788,
   "copilotPort": 8787,
@@ -52,6 +53,7 @@ Headroom may download model files, such as Kompress weights, the first time a pr
 | Environment variable | Default | Config key |
 | --- | --- | --- |
 | `HEADROOM_STARTUP_TIMEOUT` | 180 seconds | `startupTimeout` |
+| `HEADROOM_OPEN_DASHBOARD` | `true` | `openDashboard` |
 | `HEADROOM_CODEX_EXECUTABLE` | `codex` | `codexExecutable` |
 | `HEADROOM_CODEX_PORT` | 8788 | `codexPort` |
 | `HEADROOM_CODEX_APP_PATH` | macOS bundle `com.openai.codex` | `codexAppPath` |
@@ -70,6 +72,10 @@ Headroom may download model files, such as Kompress weights, the first time a pr
 | `HEADROOM_VSCODE_EXTENSIONS_DIR` | channel extensions | `vscodeExtensionsDir` |
 
 Ports are 1–65535. Codex, Pi, and OpenCode each need their own port. Copilot CLI, the Copilot app, and the editor can share a port when they use the same Headroom OAuth credential. Executables are names on `PATH` or a single path, not a shell command.
+
+`openDashboard` opens the selected agent's dashboard after its proxy is ready, including when it reuses a running proxy. Use JSON `false` or `HEADROOM_OPEN_DASHBOARD=0` to disable it. The environment setting accepts `true`/`false`, `on`/`off`, and `1`/`0` (case-insensitive).
+
+Kit uses `open` on macOS and `xdg-open` on Linux when `DISPLAY` or `WAYLAND_DISPLAY` is set. SSH sessions, headless Linux sessions, and systems without an opener skip browser launch. Agent help, status, stop, and authentication commands do not open the dashboard. Browser errors do not stop the agent; the opener has a three-second timeout.
 
 The Copilot app data directory must be empty or already managed by Kit. It must be separate from `~/.copilot` and any inherited `COPILOT_HOME`, including their ancestors and children. Kit rejects links that escape the private profile. Do not copy your normal app database into this directory; sign in once in the new profile instead.
 

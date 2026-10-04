@@ -4,6 +4,7 @@ import contextlib
 import json
 import os
 import plistlib
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
@@ -19,6 +20,7 @@ from headroom_kit.runtime import (
     executable,
     package_path,
     run_agent,
+    say,
 )
 
 
@@ -34,6 +36,35 @@ type Proxy = Callable[
     str,
 ]
 type Agent = Callable[[Sequence[str], Mapping[str, str] | None], int]
+
+
+def open_dashboard(cfg: Config, port: int, desktop: Desktop) -> None:
+    if not cfg["openDashboard"] or any(
+        os.environ.get(key) for key in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY")
+    ):
+        return
+    if desktop.platform == "darwin":
+        opener = shutil.which("open")
+    elif desktop.platform == "linux" and (
+        os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+    ):
+        opener = shutil.which("xdg-open")
+    else:
+        return
+    if not opener:
+        return
+    url = f"http://127.0.0.1:{port}/dashboard"
+    try:
+        subprocess.run(
+            [opener, url],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=3,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        say(f"Could not open the dashboard. Open {url} in your browser.")
 
 
 def app_target(cfg: Config, desktop: Desktop = Desktop()) -> list[str]:
@@ -354,6 +385,7 @@ def session(
         port = cfg[f"{kind}Port"]
         copilot = copilot_endpoint(cfg, version, args, authorize, start_proxy)
         endpoint = start_proxy(cfg, version, kind, port, None)
+        open_dashboard(cfg, port, desktop)
         env = client_environment(os.environ)
         if kind == "pi":
             env["HEADROOM_KIT_ENDPOINT"] = endpoint + "/v1"
@@ -370,6 +402,7 @@ def session(
         return launch([agent, *args], env)
     if command.startswith("codex"):
         endpoint = start_proxy(cfg, version, "codex", cfg["codexPort"], None) + "/v1"
+        open_dashboard(cfg, cfg["codexPort"], desktop)
         if command == "codex-headroom":
             return launch([agent, *codex_arguments(args, endpoint)], client_environment(os.environ))
         target = app_target(cfg, desktop)
@@ -391,6 +424,7 @@ def session(
     )
     auth = authorize()
     endpoint = start_proxy(cfg, version, "copilot", port, auth)
+    open_dashboard(cfg, port, desktop)
     if command == "copilot-app-headroom":
         return copilot_app.launch(
             agent,

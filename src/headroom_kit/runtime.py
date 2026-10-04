@@ -17,6 +17,7 @@ TESTED_HEADROOM = "0.39.1"
 LEGACY_KEYS = ("version", "uv", "python")
 ENV_OPTIONS = {
     "startupTimeout": "HEADROOM_STARTUP_TIMEOUT",
+    "openDashboard": "HEADROOM_OPEN_DASHBOARD",
     "codexExecutable": "HEADROOM_CODEX_EXECUTABLE",
     "codexPort": "HEADROOM_CODEX_PORT",
     "codexAppPath": "HEADROOM_CODEX_APP_PATH",
@@ -38,6 +39,7 @@ ENV_OPTIONS = {
 
 class Config(TypedDict):
     startupTimeout: int
+    openDashboard: bool
     codexExecutable: str
     codexPort: int
     codexAppPath: str | None
@@ -60,6 +62,7 @@ type Json = str | int | float | bool | None | list[Json] | dict[str, Json]
 
 DEFAULTS: Config = {
     "startupTimeout": 180,
+    "openDashboard": True,
     "codexExecutable": "codex",
     "codexPort": 8788,
     "codexAppPath": None,
@@ -180,6 +183,11 @@ def validate(cfg: Config) -> None:
         if isinstance(cfg[key], str) and not cfg[key].strip():
             raise KitError(f"{variable} must not be empty. Unset it to use the default.")
     validate_numbers(cfg)
+    value = cfg["openDashboard"]
+    if isinstance(value, str) and value.lower() in ("1", "0", "true", "false", "on", "off"):
+        cfg["openDashboard"] = value.lower() in ("1", "true", "on")
+    elif not isinstance(value, bool):
+        raise KitError("HEADROOM_OPEN_DASHBOARD must be true/false, on/off, or 1/0.")
     if cfg["vscodeChannel"] not in ("stable", "insiders"):
         raise KitError("HEADROOM_VSCODE_CHANNEL must be stable or insiders.")
 
