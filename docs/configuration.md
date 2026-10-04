@@ -75,6 +75,8 @@ Ports are 1–65535. Codex, Pi, and OpenCode each need their own port. Copilot C
 
 `openDashboard` opens the selected agent's dashboard after its proxy is ready, including when it reuses a running proxy. Use JSON `false` or `HEADROOM_OPEN_DASHBOARD=0` to disable it. The environment setting accepts `true`/`false`, `on`/`off`, and `1`/`0` (case-insensitive).
 
+When Pi or OpenCode explicitly selects `github-copilot`, Kit opens the shared Copilot proxy's dashboard.
+
 Kit uses `open` on macOS and `xdg-open` on Linux when `DISPLAY` or `WAYLAND_DISPLAY` is set. SSH sessions, headless Linux sessions, and systems without an opener skip browser launch. Agent help, status, stop, and authentication commands do not open the dashboard. Browser errors do not stop the agent; the opener has a three-second timeout.
 
 The Copilot app data directory must be empty or already managed by Kit. It must be separate from `~/.copilot` and any inherited `COPILOT_HOME`, including their ancestors and children. Kit rejects links that escape the private profile. Do not copy your normal app database into this directory; sign in once in the new profile instead.

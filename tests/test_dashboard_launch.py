@@ -70,6 +70,34 @@ def test_dashboard_environment_overrides_file_and_browser_failure_keeps_agent(
     assert len([event for event in launcher.events() if event["event"] == "browser"]) == 1
 
 
+@pytest.mark.parametrize(
+    ("command", "args", "key"),
+    [
+        ("pi-headroom", ["--provider", "github-copilot", "--model", "gpt-4.1"], "copilotPort"),
+        ("pi-headroom", ["--provider=github-copilot"], "copilotPort"),
+        ("opencode-headroom", ["run", "--model", "github-copilot/gpt-4.1"], "copilotPort"),
+        ("opencode-headroom", ["run", "-m", "github-copilot/gpt-4.1"], "copilotPort"),
+        ("pi-headroom", ["--provider", "openai", "--model", "github-copilot/fake"], "piPort"),
+    ],
+)
+def test_selected_provider_dashboard(
+    launcher: test_launch.LauncherTests, command: str, args: list[str], key: str
+) -> None:
+    result = launcher.run_launcher(*args, command=command)
+    assert result.returncode == 0, result.stderr
+    events = launcher.events()
+    browsers = [event for event in events if event["event"] == "browser"]
+    assert browsers == [
+        {
+            "event": "browser",
+            "url": f"http://127.0.0.1:{launcher.cfg[key]}/dashboard",
+            "ready": True,
+        }
+    ]
+    client = [event for event in events if event["event"] == "agent"][-1]
+    assert events.index(browsers[0]) < events.index(client)
+
+
 def test_help_and_failed_proxy_do_not_open_dashboard(launcher: test_launch.LauncherTests) -> None:
     for args, mode in ((["--help"], ""), ([], "startup-failure")):
         result = launcher.run_launcher(*args, mode=mode)

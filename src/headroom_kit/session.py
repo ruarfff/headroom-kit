@@ -385,7 +385,11 @@ def session(
         port = cfg[f"{kind}Port"]
         copilot = copilot_endpoint(cfg, version, args, authorize, start_proxy)
         endpoint = start_proxy(cfg, version, kind, port, None)
-        open_dashboard(cfg, port, desktop)
+        open_dashboard(
+            cfg,
+            cfg["copilotPort"] if copilot and selected_provider(args) == "github-copilot" else port,
+            desktop,
+        )
         env = client_environment(os.environ)
         if kind == "pi":
             env["HEADROOM_KIT_ENDPOINT"] = endpoint + "/v1"
