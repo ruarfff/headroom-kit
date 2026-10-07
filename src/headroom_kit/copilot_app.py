@@ -88,7 +88,17 @@ def check_profile(data: Path, protected: tuple[Path, ...]) -> None:
             raise ValueError
         if data.exists() and not data.is_dir():
             raise ValueError
-        for path in data.rglob("*"):
+        # Session artifacts and shared skills can contain external links. Check
+        # only the files Kit accesses, including SQLite's writable sidecars.
+        for name in (
+            MARKER,
+            BOOTSTRAP_MARKER,
+            "data.db",
+            "data.db-wal",
+            "data.db-shm",
+            "data.db-journal",
+        ):
+            path = data / name
             if not path.resolve().is_relative_to(data):
                 raise ValueError
             if path.is_file() and path.stat().st_nlink != 1:
