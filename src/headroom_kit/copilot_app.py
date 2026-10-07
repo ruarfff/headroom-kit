@@ -20,7 +20,7 @@ MARKER = ".headroom-kit-profile"
 MARKER_CONTENT = "copilot-app-v1\n"
 BOOTSTRAP_MARKER = ".headroom-kit-bootstrap"
 PROVIDER_ID = "88d0af82-5be2-48c7-b3f5-9c1a95986bf7"
-SCHEMA_VERSION = 156
+SCHEMA_VERSIONS = {156, 166}
 SCHEMA_COLUMNS = {
     "model_providers": {
         "id",
@@ -147,7 +147,7 @@ def preflight(
 
 
 def schema_supported(connection: sqlite3.Connection) -> bool:
-    if connection.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION:
+    if connection.execute("PRAGMA user_version").fetchone()[0] not in SCHEMA_VERSIONS:
         return False
     return all(
         {row[1] for row in connection.execute(f"PRAGMA table_info({table})")} == columns
