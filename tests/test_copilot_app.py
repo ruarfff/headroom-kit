@@ -272,26 +272,42 @@ class CopilotAppTests(unittest.TestCase):
 
     def test_unsupported_schema_is_not_changed(self) -> None:
         self.prepare()
-        with sqlite3.connect(self.data / "data.db") as database:
-            database.execute("PRAGMA user_version=157")
-        before = (self.data / "data.db").read_bytes()
-        with self.assertRaisesRegex(KitError, "Unsupported Copilot app database schema"):
-            copilot_app.configure(
-                self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
-            )
-        self.assertEqual((self.data / "data.db").read_bytes(), before)
+        for version in (157, 165, 167):
+            with self.subTest(version=version):
+                with sqlite3.connect(self.data / "data.db") as database:
+                    database.execute(f"PRAGMA user_version={version}")
+                before = (self.data / "data.db").read_bytes()
+                with self.assertRaisesRegex(KitError, "Unsupported Copilot app database schema"):
+                    copilot_app.configure(
+                        self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
+                    )
+                self.assertEqual((self.data / "data.db").read_bytes(), before)
         self.assertEqual(self.launched, [])
 
-    def test_changed_columns_are_rejected_even_with_the_supported_version(self) -> None:
+    def test_schema_166_configures_models_without_changing_the_schema(self) -> None:
+        self.prepare()
+        with sqlite3.connect(self.data / "data.db") as database:
+            database.execute("PRAGMA user_version=166")
+        result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+        with sqlite3.connect(self.data / "data.db") as database:
+            self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], 166)
+
+    def test_changed_columns_are_rejected_even_with_a_supported_version(self) -> None:
         self.prepare()
         with sqlite3.connect(self.data / "data.db") as database:
             database.execute("ALTER TABLE provider_models DROP COLUMN supported_reasoning_efforts")
-        before = (self.data / "data.db").read_bytes()
-        with self.assertRaisesRegex(KitError, "Unsupported Copilot app database schema"):
-            copilot_app.configure(
-                self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
-            )
-        self.assertEqual((self.data / "data.db").read_bytes(), before)
+        for version in (156, 166):
+            with self.subTest(version=version):
+                with sqlite3.connect(self.data / "data.db") as database:
+                    database.execute(f"PRAGMA user_version={version}")
+                before = (self.data / "data.db").read_bytes()
+                with self.assertRaisesRegex(KitError, "Unsupported Copilot app database schema"):
+                    copilot_app.configure(
+                        self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
+                    )
+                self.assertEqual((self.data / "data.db").read_bytes(), before)
 
     def test_failed_model_update_rolls_back_provider_and_selection(self) -> None:
         self.prepare()

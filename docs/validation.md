@@ -10,6 +10,8 @@ Live GUI checks are not part of that matrix. `codex-app` and `copilot-app` are m
 
 Manual checks with Copilot app 1.1.26 verified GPT Responses and Claude Chat Completions through Headroom, preserved the normal profile's files during isolated launches, and confirmed that a normal app launch still sends requests directly to Copilot.
 
+For Copilot app 1.1.27, read-only inspection of schema 166 confirmed that the managed tables retain the supported columns, types, defaults, foreign keys, and unique constraints. Its app-state triggers affect a different key from Kit's model selection. Fixture tests cover schema 166 configuration without changing the schema version, unknown-version rejection, and changed-column rejection for both supported versions. Live routing with 1.1.27 has not yet been verified.
+
 ## Not verified
 
 - Windows. It is not a target of this package.
