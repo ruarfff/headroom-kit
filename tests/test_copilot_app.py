@@ -252,23 +252,73 @@ class CopilotAppTests(unittest.TestCase):
             self.app()
         self.assertFalse((self.data / copilot_app.MARKER).exists())
 
-    def test_escaping_database_and_session_symlinks_are_rejected(self) -> None:
+    def test_session_artifacts_and_shared_skills_do_not_block_relaunch(self) -> None:
+        self.prepare()
+        interpreter = self.root / "python"
+        interpreter.write_text("external interpreter must stay unchanged")
+        binary = self.data / "session-state/test/files/validation-venv/bin/python"
+        binary.parent.mkdir(parents=True)
+        binary.symlink_to(interpreter)
+        os.link(interpreter, binary.parent / "hardlinked-artifact")
+        skills = self.root / "shared-skills"
+        skills.mkdir()
+        (skills / "SKILL.md").write_text("shared skill must stay unchanged")
+        (self.data / "skills").symlink_to(skills, target_is_directory=True)
+
+        result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
+
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+        self.assertTrue(binary.is_symlink())
+        self.assertEqual(interpreter.read_text(), "external interpreter must stay unchanged")
+        self.assertEqual((skills / "SKILL.md").read_text(), "shared skill must stay unchanged")
+        self.assertEqual(
+            (self.normal / "data.db").read_bytes(), b"normal profile must stay unchanged"
+        )
+
+    def test_escaping_managed_file_symlinks_are_rejected(self) -> None:
         self.data.mkdir()
-        (self.data / copilot_app.MARKER).write_text(copilot_app.MARKER_CONTENT)
-        for name in ("data.db", "session-state"):
+        marker = self.data / copilot_app.MARKER
+        marker.write_text(copilot_app.MARKER_CONTENT)
+        names = (
+            copilot_app.MARKER,
+            copilot_app.BOOTSTRAP_MARKER,
+            "data.db",
+            "data.db-wal",
+            "data.db-shm",
+            "data.db-journal",
+        )
+        for name in names:
+            for target in (self.normal / "data.db", self.normal / "missing"):
+                with self.subTest(name=name, target=target):
+                    link = self.data / name
+                    link.unlink(missing_ok=True)
+                    link.symlink_to(target)
+                    with self.assertRaisesRegex(KitError, "without links outside"):
+                        self.app()
+                    link.unlink()
+                    marker.write_text(copilot_app.MARKER_CONTENT)
+
+    def test_managed_file_hardlinks_are_rejected(self) -> None:
+        self.data.mkdir()
+        marker = self.data / copilot_app.MARKER
+        marker.write_text(copilot_app.MARKER_CONTENT)
+        for name in (
+            copilot_app.MARKER,
+            copilot_app.BOOTSTRAP_MARKER,
+            "data.db",
+            "data.db-wal",
+            "data.db-shm",
+            "data.db-journal",
+        ):
             with self.subTest(name=name):
                 link = self.data / name
-                link.symlink_to(self.normal / "data.db")
+                link.unlink(missing_ok=True)
+                os.link(self.normal / "data.db", link)
                 with self.assertRaisesRegex(KitError, "without links outside"):
                     self.app()
                 link.unlink()
-
-    def test_database_hardlink_is_rejected(self) -> None:
-        self.data.mkdir()
-        (self.data / copilot_app.MARKER).write_text(copilot_app.MARKER_CONTENT)
-        os.link(self.normal / "data.db", self.data / "data.db")
-        with self.assertRaisesRegex(KitError, "without links outside"):
-            self.app()
+                marker.write_text(copilot_app.MARKER_CONTENT)
 
     def test_unsupported_schema_is_not_changed(self) -> None:
         self.prepare()
