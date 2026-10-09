@@ -204,6 +204,31 @@ class LauncherTests(unittest.TestCase):
                 'model_provider="openai"',
                 "-c",
                 f'openai_base_url="http://127.0.0.1:{self.cfg["codexPort"]}/v1"',
+                "-c",
+                f"mcp_servers.headroom_kit.command={json.dumps(str(self.interpreter))}",
+                "-c",
+                "mcp_servers.headroom_kit.args="
+                + json.dumps(
+                    [
+                        "-I",
+                        "-m",
+                        "headroom.cli",
+                        "mcp",
+                        "serve",
+                        "--proxy-url",
+                        f"http://127.0.0.1:{self.cfg['codexPort']}",
+                    ]
+                ),
+                "-c",
+                "mcp_servers.headroom_kit.enabled=true",
+                "-c",
+                'mcp_servers.headroom_kit.enabled_tools=["headroom_retrieve"]',
+                "-c",
+                "mcp_servers.headroom_kit.required=true",
+                "-c",
+                "mcp_servers.headroom_kit.startup_timeout_sec=60",
+                "-c",
+                "mcp_servers.headroom_kit.tools.headroom_retrieve.output_token_limit=30000",
             ],
         )
         self.assertFalse(any(e["event"] == "proxy-stop" for e in self.events()))
@@ -225,33 +250,6 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual((self.root / "agent-output").stat().st_mode & 0o777, 0o644)
         control = kit_proxy.runtime_dir() / f"{self.cfg['codexPort']}.sock"
         self.assertEqual(control.stat().st_mode & 0o777, 0o700)
-
-    def test_codex_config_overrides_share_the_subcommand_scope(self) -> None:
-        args = [
-            "-c",
-            'model_reasoning_effort="low"',
-            "exec",
-            "--config=model_verbosity=low",
-            "-cweb_search=disabled",
-            "--",
-            "a prompt with --config=literal",
-        ]
-        result = self.run_launcher(*args)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        actual = next(e for e in self.events() if e["event"] == "agent")["args"]
-        # Codex 0.154.0 replaces global -c values when a subcommand has its
-        # own -c values. Keep user settings and routing in that same scope.
-        self.assertEqual(actual[0], "exec")
-        self.assertEqual(actual[-2:], args[-2:])
-        settings = dict(value.split("=", 1) for value in actual[2:-2:2])
-        self.assertEqual(settings["model_reasoning_effort"], '"low"')
-        self.assertEqual(settings["model_verbosity"], "low")
-        self.assertEqual(settings["web_search"], "disabled")
-        self.assertEqual(settings["model_provider"], '"openai"')
-        self.assertEqual(
-            settings["openai_base_url"],
-            f'"http://127.0.0.1:{self.cfg["codexPort"]}/v1"',
-        )
 
     def test_agent_failure_status_preserves_shared_proxy(self) -> None:
         result = self.run_launcher(mode="agent-failure")

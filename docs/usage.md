@@ -43,7 +43,7 @@ The default profile is `~/.local/share/headroom-kit/copilot-app`, or `$XDG_DATA_
 
 Each launch updates the managed provider and preserves your selected Headroom model when it is still available. GPT models that require Responses use that API; models with Chat Completions support use that API. Native Copilot model entries still bypass Headroom, so use the **Headroom Copilot** provider for routed chats. A removed model selection falls back to an available routed model.
 
-This integration uses the app's private provider database while the app is closed. Copilot app 1.1.26 (schema 156) and 1.1.27 (schema 166) are supported. An unknown schema or changed managed-table columns stop the launch before model settings change. Kit does not copy credentials from the normal profile.
+This integration uses the app's private provider database while the app is closed. Kit checks the provider tables, not the app's global database version. Required column types, nullable/default requirements, unique keys, and foreign-key targets must remain compatible. Extra optional, defaulted, or generated columns are allowed. Incompatible layouts stop before model settings change; other SQL constraint failures roll back all model changes. Initial profile setup waits for complete provider tables and their referenced keys. Kit does not copy credentials from the normal profile.
 
 ## Pi
 

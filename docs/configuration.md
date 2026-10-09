@@ -85,7 +85,9 @@ The Copilot app data directory must be empty or already managed by Kit. It must 
 
 Managed proxies use Headroom's `coding` profile unless you override it. Explicit `HEADROOM_*` compression and metrics variables pass through. Routing, auth, privacy, process settings, semantic caching, and rate limiting stay under Kit's control.
 
-OpenAI routes stay lossless because CCR retrieval does not cover those paths, including OpenAI-wire Copilot. Setting a more aggressive profile does not bypass that.
+OpenAI Chat Completions stay lossless. Responses use the selected compression profile only when the request advertises a Headroom retrieval tool and CCR marker injection is enabled. Otherwise they stay lossless, including OpenAI-wire Copilot clients without that tool. Kit does not inject a tool into requests that do not advertise one.
+
+The Codex CLI launcher supplies a Headroom MCP retrieval server for that launch. It uses the same interpreter and local proxy, enables only `headroom_retrieve`, and marks the server as required. Requests can then recover content removed by compression. The Responses size gate uses the profile's block-compression floor instead of Headroom's separate 512-byte minimum.
 
 To change a setting that is part of the proxy identity, stop the proxy and launch again:
 

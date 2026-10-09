@@ -133,11 +133,25 @@ class CopilotAppTests(unittest.TestCase):
     def app(self) -> copilot_app.App:
         return copilot_app.preflight(self.cfg, "darwin", str(self.lookup), home=self.home, env={})
 
-    def prepare(self) -> None:
+    def prepare(self, schema: str = SCHEMA) -> None:
         self.data.mkdir()
         (self.data / copilot_app.MARKER).write_text(copilot_app.MARKER_CONTENT)
         with sqlite3.connect(self.data / "data.db") as database:
-            database.executescript(SCHEMA)
+            database.executescript(schema)
+
+    def assert_schema_rejected(
+        self, message: str = "Unsupported Copilot app provider table layout"
+    ) -> None:
+        before = (self.data / "data.db").read_bytes()
+        with self.assertRaisesRegex(KitError, message):
+            copilot_app.configure(
+                self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
+            )
+        self.assertEqual((self.data / "data.db").read_bytes(), before)
+        self.assertEqual(
+            (self.normal / "data.db").read_bytes(), b"normal profile must stay unchanged"
+        )
+        self.assertEqual(self.launched, [])
 
     def launch(self, argv: Sequence[str], env: Mapping[str, str] | None) -> int:
         self.launched.append((list(argv), dict(env or {})))
@@ -320,44 +334,211 @@ class CopilotAppTests(unittest.TestCase):
                 link.unlink()
                 marker.write_text(copilot_app.MARKER_CONTENT)
 
-    def test_unsupported_schema_is_not_changed(self) -> None:
+    def test_global_schema_versions_do_not_change_model_configuration(self) -> None:
         self.prepare()
-        for version in (157, 165, 167):
+        for version in (0, 156, 157, 165, 166, 167, 174, 175, 9999):
             with self.subTest(version=version):
                 with sqlite3.connect(self.data / "data.db") as database:
                     database.execute(f"PRAGMA user_version={version}")
-                before = (self.data / "data.db").read_bytes()
-                with self.assertRaisesRegex(KitError, "Unsupported Copilot app database schema"):
-                    copilot_app.configure(
-                        self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
+                result = copilot_app.launch(
+                    self.app(), self.endpoint, 3, "fake-open", self.launch, {}
+                )
+                self.assertEqual(result, 0)
+                self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+                with sqlite3.connect(self.data / "data.db") as database:
+                    self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], version)
+                    self.assertEqual(
+                        database.execute("SELECT count(*) FROM provider_models").fetchone()[0], 2
                     )
-                self.assertEqual((self.data / "data.db").read_bytes(), before)
-        self.assertEqual(self.launched, [])
 
-    def test_schema_166_configures_models_without_changing_the_schema(self) -> None:
+    def test_compatible_extra_columns_do_not_block_launch(self) -> None:
         self.prepare()
         with sqlite3.connect(self.data / "data.db") as database:
-            database.execute("PRAGMA user_version=166")
+            for table in copilot_app.SCHEMA_COLUMNS:
+                key = "key" if table == "app_state" else "id"
+                database.execute(f"ALTER TABLE {table} ADD COLUMN future_note BLOB")
+                database.execute(
+                    f"ALTER TABLE {table} ADD COLUMN future_flag INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execute(
+                    f"ALTER TABLE {table} ADD COLUMN derived_length INTEGER "
+                    f"GENERATED ALWAYS AS (length({key})) VIRTUAL NOT NULL"
+                )
+            database.execute(
+                "ALTER TABLE app_state ADD COLUMN account_id TEXT NOT NULL DEFAULT 'future-account'"
+            )
+            database.execute("PRAGMA user_version=9999")
         result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
         self.assertEqual(result, 0)
         self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
         with sqlite3.connect(self.data / "data.db") as database:
-            self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], 166)
+            self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], 9999)
+            self.assertEqual(
+                database.execute("SELECT DISTINCT future_flag FROM provider_models").fetchall(),
+                [(0,)],
+            )
 
-    def test_changed_columns_are_rejected_even_with_a_supported_version(self) -> None:
+    def test_compatible_type_aliases_do_not_block_launch(self) -> None:
+        self.prepare(SCHEMA.replace("TEXT", "VARCHAR(255)").replace("INTEGER", "BIGINT"))
+        result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+
+    def test_case_only_column_changes_do_not_block_launch(self) -> None:
+        self.prepare(
+            SCHEMA.replace("model_id", "MODEL_ID").replace("settings_json", "SETTINGS_JSON")
+        )
+        result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+
+    def test_equivalent_unique_indexes_do_not_block_launch(self) -> None:
+        schema = SCHEMA.replace("PRIMARY KEY NOT NULL", "UNIQUE NOT NULL").replace(
+            "UNIQUE(provider_id, model_id)", "UNIQUE(model_id, provider_id)"
+        )
+        self.prepare(schema)
+        result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+
+    def test_missing_required_columns_are_rejected_at_any_version(self) -> None:
         self.prepare()
         with sqlite3.connect(self.data / "data.db") as database:
             database.execute("ALTER TABLE provider_models DROP COLUMN supported_reasoning_efforts")
-        for version in (156, 166):
+        for version in (156, 166, 174, 175, 9999):
             with self.subTest(version=version):
                 with sqlite3.connect(self.data / "data.db") as database:
                     database.execute(f"PRAGMA user_version={version}")
-                before = (self.data / "data.db").read_bytes()
-                with self.assertRaisesRegex(KitError, "Unsupported Copilot app database schema"):
-                    copilot_app.configure(
-                        self.app(), self.endpoint, copilot_app.fetch_models(self.endpoint)
+                self.assert_schema_rejected()
+
+    def test_required_extra_columns_without_defaults_are_rejected(self) -> None:
+        self.prepare()
+        for table in copilot_app.SCHEMA_COLUMNS:
+            with self.subTest(table=table):
+                with sqlite3.connect(self.data / "data.db") as database:
+                    database.execute(
+                        f"ALTER TABLE {table} ADD COLUMN future_required TEXT NOT NULL"
                     )
-                self.assertEqual((self.data / "data.db").read_bytes(), before)
+                self.assert_schema_rejected()
+                with sqlite3.connect(self.data / "data.db") as database:
+                    database.execute(f"ALTER TABLE {table} DROP COLUMN future_required")
+
+    def test_changed_text_column_types_are_rejected(self) -> None:
+        self.prepare(SCHEMA.replace("settings_json TEXT", "settings_json BLOB"))
+        self.assert_schema_rejected()
+
+    def test_changed_token_column_types_are_rejected(self) -> None:
+        self.prepare(SCHEMA.replace("max_prompt_tokens INTEGER", "max_prompt_tokens TEXT"))
+        self.assert_schema_rejected()
+
+    def test_omitted_timestamps_need_defaults_or_allow_null(self) -> None:
+        self.prepare(
+            SCHEMA.replace(
+                "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
+                "created_at TEXT NOT NULL",
+            )
+        )
+        self.assert_schema_rejected()
+
+    def test_columns_written_as_null_cannot_be_made_required(self) -> None:
+        self.prepare(
+            SCHEMA.replace("wire_model TEXT,", "wire_model TEXT NOT NULL DEFAULT 'future-wire',")
+        )
+        self.assert_schema_rejected()
+
+    def test_missing_model_conflict_key_is_rejected(self) -> None:
+        self.prepare(
+            SCHEMA.replace(
+                "supported_reasoning_efforts TEXT, UNIQUE(provider_id, model_id)",
+                "supported_reasoning_efforts TEXT",
+            )
+        )
+        self.assert_schema_rejected()
+
+    def test_missing_provider_conflict_key_is_rejected(self) -> None:
+        self.prepare(SCHEMA.replace("id TEXT PRIMARY KEY NOT NULL, name", "id TEXT NOT NULL, name"))
+        self.assert_schema_rejected()
+
+    def test_missing_model_id_key_is_rejected(self) -> None:
+        self.prepare(
+            SCHEMA.replace(
+                "id TEXT PRIMARY KEY NOT NULL,\n  provider_id", "id TEXT NOT NULL,\n  provider_id"
+            )
+        )
+        self.assert_schema_rejected()
+
+    def test_missing_state_conflict_key_is_rejected(self) -> None:
+        self.prepare(SCHEMA.replace("key TEXT PRIMARY KEY NOT NULL", "key TEXT NOT NULL"))
+        self.assert_schema_rejected()
+
+    def test_partial_unique_indexes_do_not_replace_conflict_keys(self) -> None:
+        schema = SCHEMA.replace(
+            "supported_reasoning_efforts TEXT, UNIQUE(provider_id, model_id)",
+            "supported_reasoning_efforts TEXT",
+        )
+        self.prepare(
+            schema + "CREATE UNIQUE INDEX partial_pair ON provider_models(provider_id, model_id) "
+            "WHERE wire_model IS NOT NULL;"
+        )
+        self.assert_schema_rejected()
+
+    def test_expression_indexes_do_not_replace_conflict_keys(self) -> None:
+        schema = SCHEMA.replace(
+            "supported_reasoning_efforts TEXT, UNIQUE(provider_id, model_id)",
+            "supported_reasoning_efforts TEXT",
+        )
+        self.prepare(
+            schema + "CREATE UNIQUE INDEX expression_pair "
+            "ON provider_models(provider_id, lower(model_id));"
+        )
+        self.assert_schema_rejected()
+
+    def test_missing_foreign_key_tables_are_rejected(self) -> None:
+        self.prepare(SCHEMA.replace("CREATE TABLE accounts(id TEXT PRIMARY KEY);", ""))
+        self.assert_schema_rejected()
+
+    def test_foreign_keys_need_unique_parent_keys(self) -> None:
+        self.prepare(
+            SCHEMA.replace(
+                "CREATE TABLE accounts(id TEXT PRIMARY KEY);", "CREATE TABLE accounts(id TEXT);"
+            )
+        )
+        self.assert_schema_rejected()
+
+    def test_implicit_foreign_keys_do_not_block_launch(self) -> None:
+        self.prepare(SCHEMA.replace("REFERENCES accounts(id)", "REFERENCES accounts"))
+        result = copilot_app.launch(self.app(), self.endpoint, 3, "fake-open", self.launch, {})
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+
+    def test_new_check_constraints_roll_back_all_model_changes(self) -> None:
+        self.prepare(
+            SCHEMA.replace(
+                "type TEXT NOT NULL DEFAULT 'openai'",
+                "type TEXT NOT NULL DEFAULT 'openai' CHECK(type='openai')",
+            )
+        )
+        self.assert_schema_rejected("model changes were rolled back")
+
+    def test_bootstrap_waits_for_complete_tables_at_an_unknown_version(self) -> None:
+        app = self.app()
+        schema = SCHEMA.replace("PRAGMA user_version=156;", "PRAGMA user_version=9999;").replace(
+            "CREATE TABLE accounts(id TEXT PRIMARY KEY);", ""
+        )
+        app.executable.write_text(
+            f"#!{sys.executable}\nimport os, sqlite3, time\nfrom pathlib import Path\n"
+            "data = Path(os.environ['COPILOT_HOME'])\n"
+            f"with sqlite3.connect(data / 'data.db') as db: db.executescript({schema!r})\n"
+            "time.sleep(0.3)\n"
+            "with sqlite3.connect(data / 'data.db') as db: db.execute('CREATE TABLE accounts(id TEXT PRIMARY KEY)')\n"
+            "while True: time.sleep(1)\n"
+        )
+        result = copilot_app.launch(app, self.endpoint, 3, "fake-open", self.launch, {})
+        self.assertEqual(result, 0)
+        self.assertEqual(self.selected(), f"{copilot_app.PROVIDER_ID}/gpt-6.1-sol")
+        self.assertFalse((self.data / copilot_app.BOOTSTRAP_MARKER).exists())
+        with sqlite3.connect(self.data / "data.db") as database:
+            self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], 9999)
 
     def test_failed_model_update_rolls_back_provider_and_selection(self) -> None:
         self.prepare()

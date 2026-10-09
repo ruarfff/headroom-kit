@@ -255,6 +255,31 @@ def codex_arguments(args: list[str], endpoint: str) -> list[str]:
         'model_provider="openai"',
         "-c",
         f'openai_base_url="{endpoint}"',
+        "-c",
+        f"mcp_servers.headroom_kit.command={json.dumps(sys.executable)}",
+        "-c",
+        "mcp_servers.headroom_kit.args="
+        + json.dumps(
+            [
+                "-I",
+                "-m",
+                "headroom.cli",
+                "mcp",
+                "serve",
+                "--proxy-url",
+                endpoint.removesuffix("/v1"),
+            ]
+        ),
+        "-c",
+        "mcp_servers.headroom_kit.enabled=true",
+        "-c",
+        'mcp_servers.headroom_kit.enabled_tools=["headroom_retrieve"]',
+        "-c",
+        "mcp_servers.headroom_kit.required=true",
+        "-c",
+        "mcp_servers.headroom_kit.startup_timeout_sec=60",
+        "-c",
+        "mcp_servers.headroom_kit.tools.headroom_retrieve.output_token_limit=30000",
         *args[index:],
     ]
 

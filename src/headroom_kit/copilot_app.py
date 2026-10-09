@@ -20,7 +20,6 @@ MARKER = ".headroom-kit-profile"
 MARKER_CONTENT = "copilot-app-v1\n"
 BOOTSTRAP_MARKER = ".headroom-kit-bootstrap"
 PROVIDER_ID = "88d0af82-5be2-48c7-b3f5-9c1a95986bf7"
-SCHEMA_VERSIONS = {156, 166}
 SCHEMA_COLUMNS = {
     "model_providers": {
         "id",
@@ -46,6 +45,19 @@ SCHEMA_COLUMNS = {
     },
     "app_state": {"key", "value", "updated_at"},
 }
+SCHEMA_KEYS = {
+    "model_providers": (("id",),),
+    "provider_models": (("id",), ("provider_id", "model_id")),
+    "app_state": (("key",),),
+}
+NULLABLE_COLUMNS = {
+    "account_id",
+    "wire_model",
+    "max_prompt_tokens",
+    "max_output_tokens",
+    "supported_reasoning_efforts",
+}
+OMITTED_COLUMNS = {"created_at", "updated_at", "account_id"}
 
 
 @dataclass(frozen=True)
@@ -156,12 +168,88 @@ def preflight(
     return app
 
 
-def schema_supported(connection: sqlite3.Connection) -> bool:
-    if connection.execute("PRAGMA user_version").fetchone()[0] not in SCHEMA_VERSIONS:
+def column_type_supported(declared: str, name: str) -> bool:
+    kind = declared.upper()
+    integer = name in {"max_prompt_tokens", "max_output_tokens"}
+    if "INT" in kind:
+        return integer
+    return not integer and any(token in kind for token in ("CHAR", "CLOB", "TEXT"))
+
+
+def primary_key(connection: sqlite3.Connection, table: str) -> frozenset[str]:
+    return frozenset(
+        row[0]
+        for row in connection.execute(
+            "SELECT lower(name) FROM pragma_table_xinfo(?) WHERE pk > 0", (table,)
+        )
+    )
+
+
+def unique_keys(connection: sqlite3.Connection, table: str) -> set[frozenset[str]]:
+    primary = primary_key(connection, table)
+    keys = {primary} if primary else set()
+    indexes = connection.execute(
+        'SELECT name FROM pragma_index_list(?) WHERE "unique" = 1 AND partial = 0', (table,)
+    )
+    for (index,) in indexes:
+        columns = tuple(
+            row[0]
+            for row in connection.execute("SELECT lower(name) FROM pragma_index_info(?)", (index,))
+        )
+        if None not in columns and len(set(columns)) == len(columns):
+            keys.add(frozenset(columns))
+    return keys
+
+
+def foreign_keys_supported(connection: sqlite3.Connection, table: str) -> bool:
+    references: dict[int, tuple[str, list[str | None]]] = {}
+    for key, parent, column in connection.execute(
+        'SELECT id, "table", lower("to") FROM pragma_foreign_key_list(?)', (table,)
+    ):
+        references.setdefault(key, (parent, []))[1].append(column)
+    for parent, columns in references.values():
+        required = (
+            primary_key(connection, parent)
+            if all(column is None for column in columns)
+            else frozenset(columns)
+        )
+        if (
+            None in required
+            or len(required) != len(columns)
+            or required not in unique_keys(connection, parent)
+        ):
+            return False
+    return True
+
+
+def table_supported(connection: sqlite3.Connection, table: str, required: set[str]) -> bool:
+    columns = connection.execute(
+        'SELECT lower(name), type, "notnull", dflt_value, hidden FROM pragma_table_xinfo(?)',
+        (table,),
+    ).fetchall()
+    if not required <= {row[0] for row in columns}:
         return False
+    for name, kind, notnull, default, hidden in columns:
+        if name in required and (hidden or not column_type_supported(kind, name)):
+            return False
+        if name in required and name in NULLABLE_COLUMNS and notnull:
+            return False
+        if (
+            (name not in required or name in OMITTED_COLUMNS)
+            and notnull
+            and default is None
+            and not hidden
+        ):
+            return False
+    keys = unique_keys(connection, table)
+    return all(frozenset(key) in keys for key in SCHEMA_KEYS[table]) and foreign_keys_supported(
+        connection, table
+    )
+
+
+def schema_supported(connection: sqlite3.Connection) -> bool:
     return all(
-        {row[1] for row in connection.execute(f"PRAGMA table_info({table})")} == columns
-        for table, columns in SCHEMA_COLUMNS.items()
+        table_supported(connection, table, columns) for table, columns in SCHEMA_COLUMNS.items()
     )
 
 
@@ -184,7 +272,7 @@ def bootstrap(app: App, timeout: int, env: Mapping[str, str]) -> None:
     resumable = pending.is_file() and pending.read_text() == MARKER_CONTENT
     if (app.data / "data.db").exists() and not resumable:
         raise KitError(
-            "Unsupported Copilot app database schema. The private profile was not changed."
+            "Unsupported Copilot app provider table layout. The private profile was not changed."
         )
     pending.write_text(MARKER_CONTENT)
     say("Creating an isolated Copilot app profile. Sign in once when the app opens.")
@@ -331,7 +419,7 @@ def configure(app: App, endpoint: str, models: list[Model]) -> None:
         with sqlite3.connect((app.data / "data.db").as_uri() + "?mode=rw", uri=True) as connection:
             if not schema_supported(connection):
                 raise KitError(
-                    "Unsupported Copilot app database schema. The private profile was not changed."
+                    "Unsupported Copilot app provider table layout. The private profile was not changed."
                 )
             connection.execute("PRAGMA foreign_keys=ON")
             settings = json.dumps(
