@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from fastapi import FastAPI
 
+from headroom_kit.compression import protect_unretrievable_routes
 from headroom_kit.copilot import LOGIN_COMMAND, CopilotAuth, managed_copilot_auth
 from headroom_kit.runtime import Config, Json, KitError, privacy, say, terminate
 
@@ -419,14 +420,6 @@ def cleanup_proxy(process: subprocess.Popen[bytes] | None, path: Path) -> None:
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
-
-
-def protect_unretrievable_routes(app: "FastAPI") -> None:
-    # Headroom does not inject CCR tools into Responses, and direct
-    # Chat does not resolve them. Keep only the OpenAI pipeline lossless until
-    # those paths pass the retrieval checks in smoke_compression.py.
-    proxy = app.state.proxy
-    proxy.openai_pipeline = proxy._derived_compress_pipeline("kit-openai-lossless", lossless=True)
 
 
 def serve_main() -> int:

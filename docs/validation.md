@@ -26,4 +26,4 @@ Known limits:
 - Older Copilot CLIs can ignore `COPILOT_API_URL`.
 - Live routing and interactive model switching are not fully checked.
 
-OpenAI routes stay lossless because retrieval is incomplete on those paths.
+OpenAI Chat Completions and Responses without an advertised retrieval tool stay lossless. Responses with a Headroom retrieval tool use the selected profile when CCR marker injection is enabled. Unit tests cover tool formats, marker requirements, the profile's size floor, and request-local policy under concurrent calls. Live GUI routing remains outside CI.

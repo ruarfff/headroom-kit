@@ -204,6 +204,31 @@ class LauncherTests(unittest.TestCase):
                 'model_provider="openai"',
                 "-c",
                 f'openai_base_url="http://127.0.0.1:{self.cfg["codexPort"]}/v1"',
+                "-c",
+                f"mcp_servers.headroom_kit.command={json.dumps(str(self.interpreter))}",
+                "-c",
+                "mcp_servers.headroom_kit.args="
+                + json.dumps(
+                    [
+                        "-I",
+                        "-m",
+                        "headroom.cli",
+                        "mcp",
+                        "serve",
+                        "--proxy-url",
+                        f"http://127.0.0.1:{self.cfg['codexPort']}",
+                    ]
+                ),
+                "-c",
+                "mcp_servers.headroom_kit.enabled=true",
+                "-c",
+                'mcp_servers.headroom_kit.enabled_tools=["headroom_retrieve"]',
+                "-c",
+                "mcp_servers.headroom_kit.required=true",
+                "-c",
+                "mcp_servers.headroom_kit.startup_timeout_sec=60",
+                "-c",
+                "mcp_servers.headroom_kit.tools.headroom_retrieve.output_token_limit=30000",
             ],
         )
         self.assertFalse(any(e["event"] == "proxy-stop" for e in self.events()))
