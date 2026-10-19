@@ -14,7 +14,9 @@ from headroom_kit.proxy import protect_unretrievable_routes
 class ProxyFixture:
     native: list[ContentRouter]
     lossless: list[ContentRouter] = field(default_factory=list)
-    calls: list[tuple[str, str, str | None, dict[str, float] | None]] = field(default_factory=list)
+    calls: list[tuple[str, str, dict[str, float] | None, float | None]] = field(
+        default_factory=list
+    )
     OPENAI_RESPONSES_ROUTER_MIN_BYTES: int = 512
     openai_pipeline: list[ContentRouter] = field(init=False)
 
@@ -31,10 +33,10 @@ class ProxyFixture:
         *,
         model: str,
         request_id: str,
-        pass_id: str | None = None,
         timing: dict[str, float] | None = None,
+        deadline_started_at: float | None = None,
     ) -> tuple[dict[str, object], bool, int, list[str], dict[str, int], list[str], int]:
-        self.calls.append((model, request_id, pass_id, timing))
+        self.calls.append((model, request_id, timing, deadline_started_at))
         return payload, self.openai_pipeline is self.native, 0, [], {}, [], 0
 
 
@@ -160,12 +162,16 @@ def test_wrapper_preserves_request_arguments_and_result() -> None:
     payload: dict[str, object] = {"tools": [{"name": "headroom_retrieve"}]}
     timing = {"before": 0.5}
     result = proxy._compress_openai_responses_live_text_units_with_router(
-        payload, model="test-model", request_id="request", pass_id="pass", timing=timing
+        payload,
+        model="test-model",
+        request_id="request",
+        timing=timing,
+        deadline_started_at=12.5,
     )
     assert result == (payload, True, 0, [], {}, [], 0)
     assert result[0] is payload
-    assert proxy.calls == [("test-model", "request", "pass", timing)]
-    assert proxy.calls[0][3] is timing
+    assert proxy.calls == [("test-model", "request", timing, 12.5)]
+    assert proxy.calls[0][2] is timing
 
 
 def test_concurrent_requests_do_not_change_the_shared_chat_pipeline() -> None:

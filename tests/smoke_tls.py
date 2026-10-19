@@ -67,6 +67,8 @@ def certificate(root: Path) -> tuple[Path, Path]:
             "basicConstraints=critical,CA:TRUE",
             "-addext",
             "keyUsage=critical,keyCertSign,digitalSignature,keyEncipherment",
+            "-addext",
+            "extendedKeyUsage=serverAuth",
         ],
         check=True,
         stdout=subprocess.DEVNULL,
@@ -122,10 +124,11 @@ class TLSRegression(unittest.TestCase):
                     urllib.request.urlopen(self.url, context=httpx_context, timeout=3)
                 self.assertEqual(Handler.protocols[-1], "h2")
                 context = self.ssl_context.build_urlopen_context()
-                self.assertEqual(
-                    set(context.get_ca_certs(binary_form=True)),
-                    set(httpx_context.get_ca_certs(binary_form=True)),
-                )
+                if type(context) is ssl.SSLContext:
+                    self.assertEqual(
+                        set(context.get_ca_certs(binary_form=True)),
+                        set(httpx_context.get_ca_certs(binary_form=True)),
+                    )
                 self.assertEqual(context.verify_flags, httpx_context.verify_flags)
                 self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
                 self.assertTrue(context.check_hostname)
@@ -137,6 +140,8 @@ class TLSRegression(unittest.TestCase):
                 with self.assertRaises(urllib.error.URLError):
                     self.request(self.url.replace("localhost", "127.0.0.1"))
         self.environment({})
+        self.assertIsNotNone(self.ssl_context.build_urlopen_context())
+        self.environment({"HEADROOM_CERT_STORE": "bundled"})
         self.assertIsNone(self.ssl_context.build_urlopen_context())
 
     def test_proxy_policy(self) -> None:
@@ -189,7 +194,7 @@ class TLSRegression(unittest.TestCase):
     def assert_certificate_rejected(self, dispatch: Callable[[list[str]], int]) -> None:
         self.environment({})
         self.assertEqual(self.auth_help(dispatch), 0)
-        self.assertIsNone(self.ssl_context.build_urlopen_context())
+        self.assertIsNotNone(self.ssl_context.build_urlopen_context())
         with self.assertRaises(urllib.error.URLError):
             self.request()
 

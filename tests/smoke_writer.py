@@ -53,6 +53,7 @@ class PinnedWriterTests(unittest.TestCase):
                     "vscodeExtensionsDir": str(root / "extensions"),
                     "vscodePort": 18787,
                     "startupTimeout": 2,
+                    "openDashboard": False,
                 }
                 launches = []
 

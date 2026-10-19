@@ -280,7 +280,9 @@ def retrieval_gaps(proxy: Proxy, target: Upstream, hash_key: str) -> None:
             )
             result = proxy.post(route, body, f"gap-{route}-{stream}")
             if route == "chat" and not stream:
-                assert "headroom_retrieve" in result, "Recheck the OpenAI lossless exception"
+                assert "fixture complete" in result and "headroom_retrieve" not in result
+                assert len(target.retrievals) == 1 and len(target.calls) == 2
+                assert ORIGINAL in json.dumps(target.calls[1])
             else:
                 assert not target.retrievals, "Recheck the OpenAI lossless exception"
                 assert "headroom_retrieve" not in json.dumps(target.calls[0].get("tools", []))
