@@ -15,6 +15,7 @@ def check(name: str, executable: str, mode: str) -> None:
     fixture.setUp()
     try:
         fixture.cfg[f"{name}Executable"] = executable
+        fixture.cfg["openDashboard"] = False
         fixture.defaults.write_text(json.dumps(fixture.cfg))
         fixture.env.update(
             PATH=f"{fixture.bin}:/usr/bin:/bin",

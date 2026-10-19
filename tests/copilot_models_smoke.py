@@ -29,7 +29,12 @@ def main() -> None:
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
-    env = dict(os.environ, HEADROOM_COPILOT_PORT=str(port), COPILOT_MODEL="auto")
+    env = dict(
+        os.environ,
+        HEADROOM_COPILOT_PORT=str(port),
+        HEADROOM_OPEN_DASHBOARD="0",
+        COPILOT_MODEL="auto",
+    )
     # Prove that inherited BYOK settings cannot defeat native routing.
     env.update(
         COPILOT_PROVIDER_BASE_URL="http://127.0.0.1:1",

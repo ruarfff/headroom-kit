@@ -76,6 +76,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("package", type=Path, help="Install prefix containing bin/headroom-kit")
     args = parser.parse_args()
+    package = args.package.resolve()
     with tempfile.TemporaryDirectory(prefix="headroom-kit-runtime-") as temporary:
         root = Path(temporary).resolve()
         with socket.socket() as listener:
@@ -103,13 +104,14 @@ def main() -> int:
             "HOME": str(root),
             "PATH": "/usr/bin:/bin",
             "XDG_CONFIG_HOME": str(root / "config"),
+            "HEADROOM_OPEN_DASHBOARD": "0",
             "HEADROOM_CODEX_EXECUTABLE": str(agent),
             "HEADROOM_CODEX_PORT": str(port),
             "SMOKE_PORT": str(port),
         }
         # Deliberately omit the user's environment, token files, and live ports.
         result = subprocess.run(
-            [str(args.package / "bin/headroom-kit"), "--version"],
+            [str(package / "bin/headroom-kit"), "--version"],
             env=env,
             cwd="/",
             capture_output=True,
@@ -123,7 +125,7 @@ def main() -> int:
         print("Installed Kit and Headroom versions reported without a proxy: PASS")
         result = subprocess.run(
             [
-                str(args.package / "bin/headroom-kit"),
+                str(package / "bin/headroom-kit"),
                 "run",
                 "codex",
                 "--",
@@ -141,7 +143,7 @@ def main() -> int:
         payload = json.loads(result.stdout)
         assert payload["version"] == TESTED_HEADROOM and payload["ready"] is True
         assert payload["upstream"] is None
-        assert payload["args"] == [
+        assert payload["args"][:7] == [
             "exec",
             "--json",
             "stub only",
@@ -150,11 +152,12 @@ def main() -> int:
             "-c",
             f'openai_base_url="http://127.0.0.1:{port}/v1"',
         ]
+        assert 'mcp_servers.headroom_kit.enabled_tools=["headroom_retrieve"]' in payload["args"]
         assert config.read_text() == original
         with socket.socket() as listener:
             assert listener.connect_ex(("127.0.0.1", port)) == 0
         again = subprocess.run(
-            [str(args.package / "bin/headroom-kit"), "run", "codex", "--", "exec", "stub"],
+            [str(package / "bin/headroom-kit"), "run", "codex", "--", "exec", "stub"],
             env=env,
             cwd=root,
             capture_output=True,
@@ -162,12 +165,12 @@ def main() -> int:
             timeout=240,
         )
         assert again.returncode == 0 and "Reusing" in again.stderr, again.stderr
-        stop_shared(args.package, env, port)
+        stop_shared(package, env, port)
         print(
             "Real Codex proxy readiness, routing arguments, clean JSON, configuration preservation, reuse, explicit stop: PASS"
         )
-        smoke_api_clients(args.package, env, agent, root)
-        smoke_adapters(args.package, env, root)
+        smoke_api_clients(package, env, agent, root)
+        smoke_adapters(package, env, root)
         # Home/state is discarded; cache reuse is explicit and contains no auth.
         assert not (root / ".headroom/copilot-auth.json").exists()
     return 0

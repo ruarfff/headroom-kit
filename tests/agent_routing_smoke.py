@@ -222,7 +222,12 @@ def check(
         config.parent.mkdir(parents=True, exist_ok=True)
         original = json.dumps(content).encode()
         config.write_bytes(original)
-        cfg = {f"{agent}Executable": executable, f"{agent}Port": port, "copilotPort": copilot_port}
+        cfg = {
+            f"{agent}Executable": executable,
+            f"{agent}Port": port,
+            "copilotPort": copilot_port,
+            "openDashboard": False,
+        }
         # A fresh process tests the real inherited environment without patching globals.
         launcher = root / "launch-test.py"
         launcher.write_text(

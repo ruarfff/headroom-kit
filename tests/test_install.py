@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 import socket
 import subprocess
 import zipfile
@@ -106,6 +105,7 @@ def _lifecycle(venv: Path, work: Path) -> None:
         "SMOKE_PORT": str(port),
         "HEADROOM_DISABLE_KOMPRESS": "1",
         "HEADROOM_DISABLE_KOMPRESS_FALLBACK": "1",
+        "HEADROOM_OPEN_DASHBOARD": "0",
         "HEADROOM_STARTUP_TIMEOUT": "180",
     }
     first = subprocess.run(
@@ -144,14 +144,11 @@ def _assert_tool_auth(tmp_path: Path, artifact: Path) -> None:
     bin_dir = home / "bin"
     unrelated = tmp_path / "unrelated"
     unrelated.mkdir()
-    uv = shutil.which("uv")
-    assert uv
     installed = _run(
         ["uv", "tool", "install", "--python", "3.13", str(artifact)],
         unrelated,
         {
-            "HOME": str(home),
-            "PATH": f"{Path(uv).parent}:/usr/bin:/bin",
+            **os.environ,
             "UV_TOOL_DIR": str(tool_dir),
             "UV_TOOL_BIN_DIR": str(bin_dir),
         },

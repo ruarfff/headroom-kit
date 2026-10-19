@@ -13,7 +13,7 @@ from pathlib import Path
 from types import FrameType
 from typing import Never, TypedDict
 
-TESTED_HEADROOM = "0.39.1"
+TESTED_HEADROOM = "0.41.0"
 LEGACY_KEYS = ("version", "uv", "python")
 ENV_OPTIONS = {
     "startupTimeout": "HEADROOM_STARTUP_TIMEOUT",

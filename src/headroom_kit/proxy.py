@@ -424,6 +424,7 @@ def cleanup_proxy(process: subprocess.Popen[bytes] | None, path: Path) -> None:
 
 def serve_main() -> int:
     import uvicorn
+    from headroom.cli import proxy as cli_proxy
 
     native_run = uvicorn.run
 
@@ -435,6 +436,7 @@ def serve_main() -> int:
         managed_copilot_auth()
     # Reserve the listening socket before spawning. Health can never certify a
     # foreign process that wins a check-then-bind race.
+    cli_proxy._refuse_busy_port = lambda *_args, **_kwargs: None
     uvicorn.run = partial(run, fd=int(sys.argv[1]))
     sys.argv = ["headroom", *sys.argv[2:]]
     runpy.run_module("headroom.cli", run_name="__main__")

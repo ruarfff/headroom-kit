@@ -26,8 +26,8 @@ def protect_unretrievable_routes(app: "FastAPI") -> None:
         *,
         model: str,
         request_id: str,
-        pass_id: str | None = None,
         timing: dict[str, float] | None = None,
+        deadline_started_at: float | None = None,
     ) -> tuple[dict[str, object], bool, int, list[str], dict[str, int], list[str], int]:
         # A request-local view keeps concurrent clients from changing each
         # other's policy. Both HTTP and WebSocket Responses use this method.
@@ -48,7 +48,12 @@ def protect_unretrievable_routes(app: "FastAPI") -> None:
         ):
             view.openai_pipeline = native
         return compress(
-            view, payload, model=model, request_id=request_id, pass_id=pass_id, timing=timing
+            view,
+            payload,
+            model=model,
+            request_id=request_id,
+            timing=timing,
+            deadline_started_at=deadline_started_at,
         )
 
     proxy._compress_openai_responses_live_text_units_with_router = compress_responses
