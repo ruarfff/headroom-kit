@@ -191,7 +191,9 @@ class CopilotAppTests(unittest.TestCase):
             args[-5:], ["-a", str(self.bundle), "--args", "--config-dir", str(self.data)]
         )
         self.assertIn(f"COPILOT_HOME={self.data}", args)
+        self.assertIn(f"COPILOT_API_URL={self.endpoint}", args)
         self.assertEqual(env["COPILOT_HOME"], str(self.data))
+        self.assertEqual(env["COPILOT_API_URL"], self.endpoint)
         self.assertEqual((self.normal / "data.db").read_bytes(), normal)
         self.assertEqual((self.data / copilot_app.MARKER).read_text(), copilot_app.MARKER_CONTENT)
         self.assertEqual(self.data.stat().st_mode & 0o777, 0o700)

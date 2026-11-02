@@ -471,7 +471,17 @@ def launch(
         child["COPILOT_HOME"] = str(app.data)
         bootstrap(app, timeout, child)
         configure(app, endpoint, models)
-        args = [open_command, "-n", "--env", f"COPILOT_HOME={app.data}"]
+        # Native Copilot models, Auto, and Fusion ignore the custom provider.
+        # Route them through Headroom as the Copilot CLI launch does.
+        child["COPILOT_API_URL"] = endpoint
+        args = [
+            open_command,
+            "-n",
+            "--env",
+            f"COPILOT_HOME={app.data}",
+            "--env",
+            f"COPILOT_API_URL={endpoint}",
+        ]
         for key in ("NO_PROXY", "no_proxy"):
             if key in child:
                 args += ["--env", f"{key}={child[key]}"]
