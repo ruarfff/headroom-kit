@@ -854,8 +854,9 @@ class LauncherTests(unittest.TestCase):
         )
         self.addCleanup(foreign.wait)
         self.addCleanup(foreign.terminate)
-        deadline = time.monotonic() + 8
+        deadline = time.monotonic() + 15
         while not kit_proxy.compatible(kit_proxy.health(port), TESTED_HEADROOM, None):
+            self.assertIsNone(foreign.poll(), "Foreign proxy exited before becoming healthy")
             self.assertLess(time.monotonic(), deadline)
             time.sleep(0.05)
         self.assertEqual(self.run_launcher().returncode, 1)
