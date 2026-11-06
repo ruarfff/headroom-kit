@@ -4,7 +4,7 @@ These checks describe what this package covers. They do not add providers or cla
 
 ## What CI runs
 
-Linux and macOS CLI lifecycle checks run in GitHub Actions on `ubuntu-latest` and `macos-14`. Those checks use stand-ins for the agents and, when `HEADROOM_KIT_INSTALL=1`, install the wheel and sdist and start a real Headroom proxy from an unrelated directory.
+Linux and macOS CLI lifecycle checks run in GitHub Actions on `ubuntu-latest` and `macos-15`. Those checks use stand-ins for the agents and, when `HEADROOM_KIT_INSTALL=1`, install the wheel and sdist and start a real Headroom proxy from an unrelated directory.
 
 Live GUI checks are not part of that matrix. `codex-app` and `copilot-app` are macOS-only. Copilot app tests use a stand-in app, a local model catalog, and SQLite fixtures to check profile isolation, provider updates, schema rejection, and interrupted setup. VS Code isolation is covered by unit tests with a stand-in editor.
 
