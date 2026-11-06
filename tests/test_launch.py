@@ -860,14 +860,14 @@ class LauncherTests(unittest.TestCase):
             if kit_proxy.compatible(health, TESTED_HEADROOM, None):
                 break
             self.assertIsNone(foreign.poll(), "Foreign proxy exited before becoming healthy")
-            config = health.get("config")
+            started = any(event["event"] == "proxy-start" for event in self.events())
             self.assertLess(
                 time.monotonic(),
                 deadline,
                 "Foreign proxy did not become healthy "
                 f"(status={health.get('status')!r}, ready={health.get('ready')!r}, "
                 f"version_matches={health.get('version') == TESTED_HEADROOM}, "
-                f"upstream_matches={isinstance(config, dict) and config.get('openai_api_url') is None})",
+                f"proxy_started={started})",
             )
             time.sleep(0.05)
         self.assertEqual(self.run_launcher().returncode, 1)
