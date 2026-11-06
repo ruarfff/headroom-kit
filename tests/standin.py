@@ -227,6 +227,7 @@ def serve_proxy() -> int:
             pass
 
     server = bind_standin(port, Handler, inherited, fd)
+    record("proxy-listening", pid=os.getpid(), port=server.server_address[1])
 
     def stop(signum: int, frame: FrameType | None) -> Never:
         server.server_close()
