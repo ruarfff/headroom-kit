@@ -855,9 +855,20 @@ class LauncherTests(unittest.TestCase):
         self.addCleanup(foreign.wait)
         self.addCleanup(foreign.terminate)
         deadline = time.monotonic() + 15
-        while not kit_proxy.compatible(kit_proxy.health(port), TESTED_HEADROOM, None):
+        while True:
+            health = kit_proxy.health(port)
+            if kit_proxy.compatible(health, TESTED_HEADROOM, None):
+                break
             self.assertIsNone(foreign.poll(), "Foreign proxy exited before becoming healthy")
-            self.assertLess(time.monotonic(), deadline)
+            config = health.get("config")
+            self.assertLess(
+                time.monotonic(),
+                deadline,
+                "Foreign proxy did not become healthy "
+                f"(status={health.get('status')!r}, ready={health.get('ready')!r}, "
+                f"version_matches={health.get('version') == TESTED_HEADROOM}, "
+                f"upstream_matches={isinstance(config, dict) and config.get('openai_api_url') is None})",
+            )
             time.sleep(0.05)
         self.assertEqual(self.run_launcher().returncode, 1)
         self.assertEqual(self.run_launcher("stop", str(port), command="headroom-kit").returncode, 1)
