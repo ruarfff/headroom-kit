@@ -41,9 +41,9 @@ def writer(port: int, count: int) -> None:
             assert is_telemetry_enabled() == (os.environ["HEADROOM_TELEMETRY"] == "on")
             if count:
                 barrier = Path(os.environ["SMOKE_METRICS_BARRIER"])
-                (barrier / str(port)).touch()
+                await asyncio.to_thread((barrier / str(port)).touch)
                 async with asyncio.timeout(90):
-                    while len(list(barrier.iterdir())) < 2:
+                    while len(await asyncio.to_thread(os.listdir, barrier)) < 2:
                         await asyncio.sleep(0.05)
                 for _ in range(count):
                     await proxy.metrics.record_request(

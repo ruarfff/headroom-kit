@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Software Development",
 ]
 keywords = ["headroom", "codex", "copilot", "opencode", "proxy"]
-dependencies = ["headroom-ai[proxy,code]==0.41.0"]
+dependencies = ["headroom-ai[proxy,code]==0.42.0"]
 
 [project.urls]
 Homepage = "https://github.com/ruarfff/headroom-kit"
@@ -34,9 +34,9 @@ headroom-kit = "headroom_kit.cli:main"
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.0",
-    "pytest>=8.3",
-    "ruff>=0.16.5,<0.17",
+    "pre-commit>=4.7",
+    "pytest>=9.2",
+    "ruff>=0.17.3,<0.18",
 ]
 
 [tool.hatch.version]
