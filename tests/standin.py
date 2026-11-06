@@ -14,6 +14,7 @@ import urllib.request
 from http.client import IncompleteRead
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from socketserver import TCPServer
 from types import FrameType
 from typing import Never
 
@@ -32,6 +33,14 @@ PROXY_VARIABLES = (
     "NO_PROXY",
     "no_proxy",
 )
+
+
+class LocalHTTPServer(HTTPServer):
+    def server_bind(self) -> None:
+        # HTTPServer reverse-resolves the loopback address, which can stall on CI.
+        TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
 
 
 def record(event: str, **values: Json) -> None:
@@ -120,8 +129,8 @@ def bind_standin(
     port: int, handler: type[HTTPServer], inherited: bool, fd: int | None
 ) -> HTTPServer:
     if not inherited:
-        return HTTPServer(("127.0.0.1", port), handler)
-    server = HTTPServer(("127.0.0.1", port), handler, bind_and_activate=False)
+        return LocalHTTPServer(("127.0.0.1", port), handler)
+    server = LocalHTTPServer(("127.0.0.1", port), handler, bind_and_activate=False)
     server.socket.close()
     server.socket = socket.socket(fileno=fd if fd is not None else -1)
     server.server_address = server.socket.getsockname()
@@ -227,7 +236,6 @@ def serve_proxy() -> int:
             pass
 
     server = bind_standin(port, Handler, inherited, fd)
-    record("proxy-listening", pid=os.getpid(), port=server.server_address[1])
 
     def stop(signum: int, frame: FrameType | None) -> Never:
         server.server_close()
