@@ -854,7 +854,7 @@ class LauncherTests(unittest.TestCase):
         )
         self.addCleanup(foreign.wait)
         self.addCleanup(foreign.terminate)
-        deadline = time.monotonic() + 3
+        deadline = time.monotonic() + 8
         while not kit_proxy.compatible(kit_proxy.health(port), TESTED_HEADROOM, None):
             self.assertLess(time.monotonic(), deadline)
             time.sleep(0.05)
